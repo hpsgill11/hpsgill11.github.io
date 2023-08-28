@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
 
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Break Time Tracker</title>
-    <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Break Time Tracker</title>
+<style>
         /* Reset & General */
         body, h2, table {
             margin: 0;
@@ -82,34 +82,31 @@
         .highlight {
             color: red;
         }
-    </style>
+    
+body { position: relative; }
+</style>
 </head>
-
-<body>
-    <h2>Break Time Tracker - Morning Shift</h2>
-
-    <label for="userIDInput">Scan USERID:</label>
-    <input type="text" id="userIDInput">
-    <button onclick="recordTime()">Scan</button>
-
-    <div id="successMessage"></div>
-    <div id="errorMessage"></div>
-
-    <table>
-        <thead>
-            <tr>
-                <th>USERIDS</th>
-                <th>TIME OUT</th>
-                <th>TIME IN</th>
-                <th>TOTAL</th>
-                <th>ACTIONS</th>
-            </tr>
-        </thead>
-        <tbody id="userTable">
-        </tbody>
-    </table>
-
-    <script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+<body><h2>Break Time Tracker - Morning Shift</h2>
+<label for="userIDInput">Scan USERID:</label>
+<input id="userIDInput" type="text"/>
+<button onclick="recordTime()">Scan</button>
+<div id="successMessage"></div>
+<div id="errorMessage"></div>
+<table>
+<thead>
+<tr>
+<th>USERIDS</th>
+<th>TIME OUT</th>
+<th>TIME IN</th>
+<th>TOTAL</th>
+<th>ACTIONS</th>
+</tr>
+</thead>
+<tbody id="userTable">
+</tbody>
+</table><button onclick="exportToExcel()" style="position: absolute; top: 20px; right: 20px;">Export to Excel</button>
+<script>
         const users = {};
 
         function timeToMinutes(time) {
@@ -217,6 +214,20 @@ const currentTime = `${hours}:${minutes}`;
             refocusInput();
         }
     </script>
-</body>
+<script>
+function exportToExcel() {
+    const ws_data = [['USERIDS', 'TIME OUT', 'TIME IN', 'TOTAL']];  // headers
 
+    for (let userID in users) {
+        const total = users[userID].timeOut ? getTimeDifference(users[userID].timeIn, users[userID].timeOut) : '-';
+        ws_data.push([userID, users[userID].timeIn, users[userID].timeOut, total]);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+
+    XLSX.writeFile(wb, "break_time_data.xlsx");
+}
+</script></body>
 </html>
