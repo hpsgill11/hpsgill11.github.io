@@ -1,233 +1,242 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Break Time Tracker</title>
-<style>
-        /* Reset & General */
-        body, h2, table {
-            margin: 0;
-            padding: 0;
-            font-family: 'Arial', sans-serif;
-        }
-        body {
-            background-color: #f4f5f7;
-            padding: 20px;
-        }
-        h2 {
-            color: #333;
-            margin-bottom: 20px;
-        }
-        /* Messages */
-        #successMessage,
-        #errorMessage {
-            display: none;
-            padding: 10px 15px;
-            margin: 10px 0;
-            border-radius: 5px;
-        }
-        #successMessage {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        #errorMessage {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        /* Input and Button */
-        label {
-            display: block;
-            margin-bottom: 5px;
-            color: #666;
-        }
-        input[type="text"], input[type="time"] {
-            padding: 10px;
-            border: none;
-            border-radius: 5px;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-        }
-        button {
-            margin-left: 10px;
-            padding: 10px 15px;
-            background-color: #007BFF;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        /* Table */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            text-align: center;  /* Added this line to center-align everything in the table */
-        }
-        th, td {
-            padding: 10px 15px;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        th {
-            background-color: #007BFF;
-            color: white;
-        }
-        tbody tr:hover {
-            background-color: #f2f2f2;
-        }
-        .highlight {
-            color: red;
-        }
-    
-body { position: relative; }
-</style>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Break Time Tracker</title>
+  <style>
+    /* Reset & General */
+    body, h2, table {
+      margin: 0;
+      padding: 0;
+      font-family: 'Arial', sans-serif;
+    }
+    body {
+      background-color: #f4f5f7;
+      padding: 20px;
+    }
+    h2 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    /* Messages */
+    #successMessage,
+    #errorMessage {
+      display: none;
+      padding: 10px 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+    #successMessage {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    #errorMessage {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    /* Input and Button */
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #666;
+    }
+    input[type="text"], input[type="time"] {
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+    }
+    button {
+      margin-left: 10px;
+      padding: 10px 15px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      text-align: center;
+    }
+    th, td {
+      padding: 10px 15px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    th {
+      background-color: #007BFF;
+      color: white;
+    }
+    tbody tr:hover {
+      background-color: #f2f2f2;
+    }
+    .highlight {
+      color: red;
+    }
+  </style>
+  <script src="./Break Tracker_files/xlsx.full.min.js.download"></script>
 </head>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
-<body><h2>Break Time Tracker - Morning Shift</h2>
-<label for="userIDInput">Scan USERID:</label>
-<input id="userIDInput" type="text"/>
-<button onclick="recordTime()">Scan</button>
-<div id="successMessage"></div>
-<div id="errorMessage"></div>
-<table>
-<thead>
-<tr>
-<th>USERIDS</th>
-<th>TIME OUT</th>
-<th>TIME IN</th>
-<th>TOTAL</th>
-<th>ACTIONS</th>
-</tr>
-</thead>
-<tbody id="userTable">
-</tbody>
-</table><button onclick="exportToExcel()" style="position: absolute; top: 20px; right: 20px;">Export to Excel</button>
-<script>
-        const users = {};
+<body>
+  <h2>Break Time Tracker - Morning Shift</h2>
+  <label for="userIDInput">Scan USERID:</label>
+  <input id="userIDInput" type="text">
+  <button onclick="recordTime()">Scan</button>
+  <div id="successMessage" style="display: none;"></div>
+  <div id="errorMessage"></div>
+  <table>
+    <thead>
+      <tr>
+        <th>USERIDS</th>
+        <th>TIME OUT</th>
+        <th>TIME IN</th>
+        <th>TOTAL</th>
+        <th>ACTIONS</th>
+        <th>NOTES</th>
+      </tr>
+    </thead>
+    <tbody id="userTable"></tbody>
+  </table>
+  <button onclick="exportToExcel()" style="position: absolute; top: 20px; right: 20px;">Export to Excel</button>
+  <script>
+    const users = {};
 
-        function timeToMinutes(time) {
-            const [hours, minutes] = time.split(':').map(Number);
-            return hours * 60 + minutes;
-        }
-
-        function minutesToTime(minutes) {
-            const hours = Math.floor(minutes / 60);
-            const mins = minutes % 60;
-            return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
-        }
-
-        function getTimeDifference(start, end) {
-            const startTime = timeToMinutes(start);
-            const endTime = timeToMinutes(end);
-            const difference = endTime - startTime;
-            if (difference < 0) return 'Invalid';
-            return minutesToTime(difference);
-        }
-
-        function recordTime() {
-            const userID = document.getElementById('userIDInput').value;
-            if (!userID) {
-                displayMessage('Please enter a valid USERID.', 'error');
-                refocusInput();
-                return;
-            }
-
-            const now = new Date();
-const hours = String(now.getHours()).padStart(2, '0');
-const minutes = String(now.getMinutes()).padStart(2, '0');
-const currentTime = `${hours}:${minutes}`;
-
-            if (!users[userID]) {
-                users[userID] = {
-                    timeIn: currentTime,
-                    timeOut: ''
-                };
-                displayMessage(`User ${userID} checked in at ${currentTime}.`, 'success');
-            } else {
-                if (!users[userID].timeOut) {
-                    users[userID].timeOut = currentTime;
-                    displayMessage(`User ${userID} checked out at ${currentTime}.`, 'success');
-                } else {
-                    displayMessage('User already scanned in and out for the day.', 'error');
-                    refocusInput();
-                    return;
-                }
-            }
-
-            renderTable();
-            document.getElementById('userIDInput').value = '';
-            refocusInput();
-        }
-
-        function deleteUserData(userID) {
-            delete users[userID];
-            renderTable();
-        }
-
-        function updateTime(userID, type, value) {
-            users[userID][type] = value;
-            renderTable();
-        }
-
-        function refocusInput() {
-            document.getElementById('userIDInput').focus();
-        }
-
-        function displayMessage(message, type) {
-            const messageDiv = document.getElementById(type === 'success' ? 'successMessage' : 'errorMessage');
-            messageDiv.innerText = message;
-            messageDiv.style.display = 'block';
-            setTimeout(() => {
-                messageDiv.style.display = 'none';
-            }, 5000);
-        }
-
-        function renderTable() {
-            const tbody = document.getElementById('userTable');
-            tbody.innerHTML = '';
-
-            for (let userID in users) {
-                const total = users[userID].timeOut ? getTimeDifference(users[userID].timeIn, users[userID].timeOut) : '-';
-                const isHighlighted = total !== '-' && timeToMinutes(total) > 15 ? 'highlight' : '';
-                const row = `<tr>
-                    <td>${userID}</td>
-                    <td><input type="time" value="${users[userID].timeIn}" onchange="updateTime('${userID}', 'timeIn', this.value)"></td>
-                    <td><input type="time" value="${users[userID].timeOut}" onchange="updateTime('${userID}', 'timeOut', this.value)"></td>
-                    <td class="${isHighlighted}">${total}</td>
-                    <td><button onclick="deleteUserData('${userID}')">Delete</button></td>
-                </tr>`;
-                tbody.innerHTML += row;
-            }
-        }
-
-        document.getElementById('userIDInput').addEventListener('keyup', function(event) {
-            if (event.keyCode === 13) {
-                recordTime();
-            }
-        });
-
-        window.onload = function() {
-            refocusInput();
-        }
-    </script>
-<script>
-function exportToExcel() {
-    const ws_data = [['USERIDS', 'TIME OUT', 'TIME IN', 'TOTAL']];  // headers
-
-    for (let userID in users) {
-        const total = users[userID].timeOut ? getTimeDifference(users[userID].timeIn, users[userID].timeOut) : '-';
-        ws_data.push([userID, users[userID].timeIn, users[userID].timeOut, total]);
+    function timeToMinutes(time) {
+      const [hours, minutes] = time.split(':').map(Number);
+      return hours * 60 + minutes;
     }
 
-    const ws = XLSX.utils.aoa_to_sheet(ws_data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+    function minutesToTime(minutes) {
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+    }
 
-    XLSX.writeFile(wb, "break_time_data.xlsx");
-}
-</script></body>
+    function getTimeDifference(start, end) {
+      const startTime = timeToMinutes(start);
+      const endTime = timeToMinutes(end);
+      const difference = endTime - startTime;
+      if (difference < 0) return 'Invalid';
+      return minutesToTime(difference);
+    }
+
+    function recordTime() {
+      const userID = document.getElementById('userIDInput').value;
+      if (!userID) {
+        displayMessage('Please enter a valid USERID.', 'error');
+        refocusInput();
+        return;
+      }
+
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const currentTime = `${hours}:${minutes}`;
+
+      if (!users[userID]) {
+        users[userID] = {
+          timeIn: currentTime,
+          timeOut: '',
+          notes: ''
+        };
+        displayMessage(`User ${userID} checked in at ${currentTime}.`, 'success');
+      } else {
+        if (!users[userID].timeOut) {
+          users[userID].timeOut = currentTime;
+          displayMessage(`User ${userID} checked out at ${currentTime}.`, 'success');
+        } else {
+          displayMessage('User already scanned in and out for the day.', 'error');
+          refocusInput();
+          return;
+        }
+      }
+
+      renderTable();
+      document.getElementById('userIDInput').value = '';
+      refocusInput();
+    }
+
+    function deleteUserData(userID) {
+      delete users[userID];
+      renderTable();
+    }
+
+    function updateTime(userID, type, value) {
+      users[userID][type] = value;
+      renderTable();
+    }
+
+    function updateNotes(userID, value) {
+      users[userID].notes = value;
+      renderTable();
+    }
+
+    function refocusInput() {
+      document.getElementById('userIDInput').focus();
+    }
+
+    function displayMessage(message, type) {
+      const messageDiv = document.getElementById(type === 'success' ? 'successMessage' : 'errorMessage');
+      messageDiv.innerText = message;
+      messageDiv.style.display = 'block';
+      setTimeout(() => {
+        messageDiv.style.display = 'none';
+      }, 5000);
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('userTable');
+      tbody.innerHTML = '';
+
+      for (let userID in users) {
+        const total = users[userID].timeOut ? getTimeDifference(users[userID].timeIn, users[userID].timeOut) : '-';
+        const isHighlighted = total !== '-' && timeToMinutes(total) > 15 ? 'highlight' : '';
+        const notes = users[userID].notes || '';
+        const row = `<tr>
+          <td>${userID}</td>
+          <td><input type="time" value="${users[userID].timeIn}" onchange="updateTime('${userID}', 'timeIn', this.value)"></td>
+          <td><input type="time" value="${users[userID].timeOut}" onchange="updateTime('${userID}', 'timeOut', this.value)"></td>
+          <td class="${isHighlighted}">${total}</td>
+          <td><button onclick="deleteUserData('${userID}')">Delete</button></td>
+          <td><input type="text" value="${notes}" onchange="updateNotes('${userID}', this.value)"></td>
+        </tr>`;
+        tbody.innerHTML += row;
+      }
+    }
+
+    document.getElementById('userIDInput').addEventListener('keyup', function(event) {
+      if (event.keyCode === 13) {
+        recordTime();
+      }
+    });
+
+    window.onload = function() {
+      refocusInput();
+    }
+  </script>
+  <script>
+    function exportToExcel() {
+      const ws_data = [['USERIDS', 'TIME OUT', 'TIME IN', 'TOTAL', 'NOTES']];
+
+      for (let userID in users) {
+        const total = users[userID].timeOut ? getTimeDifference(users[userID].timeIn, users[userID].timeOut) : '-';
+        const notes = users[userID].notes || '';
+        ws_data.push([userID, users[userID].timeIn, users[userID].timeOut, total, notes]);
+      }
+
+      const ws = XLSX.utils.aoa_to_sheet(ws_data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+
+      XLSX.writeFile(wb, "break_time_data.xlsx");
+    }
+  </script>
+</body>
 </html>
