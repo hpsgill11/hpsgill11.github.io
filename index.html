@@ -3,7 +3,7 @@
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>Break Time Tracker</title>
+  <title>Time and Attendance Tracker</title>
   <style>
     /* Reset & General */
     body, h2, table {
@@ -21,17 +21,21 @@
     }
     /* Messages */
     #successMessage,
-    #errorMessage {
+    #errorMessage,
+    #attendanceSuccessMessage,
+    #attendanceErrorMessage {
       display: none;
       padding: 10px 15px;
       margin: 10px 0;
       border-radius: 5px;
     }
-    #successMessage {
+    #successMessage,
+    #attendanceSuccessMessage {
       background-color: #d4edda;
       color: #155724;
     }
-    #errorMessage {
+    #errorMessage,
+    #attendanceErrorMessage {
       background-color: #f8d7da;
       color: #721c24;
     }
@@ -84,36 +88,69 @@
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
 </head>
-</head>
 <body>
-  <h2>Break Time Tracker - Morning Shift</h2>
-  <label for="userIDInput">Scan USERID:</label>
-  <input id="userIDInput" type="text">
-  <button onclick="recordTime()">Scan</button>
-  <div id="successMessage" style="display: none;"></div>
-  <div id="errorMessage"></div>
-  <table>
-    <thead>
-      <tr>
-        <th>USERIDS</th>
-        <th>TIME OUT</th>
-        <th>TIME IN</th>
-        <th>TOTAL</th>
-        <th>ACTIONS</th>
-        <th>NOTES</th>
-      </tr>
-    </thead>
-    <tbody id="userTable"></tbody>
-  </table>
-  <button onclick="exportToExcel()" style="position: absolute; top: 20px; right: 20px;">Export to Excel</button>
+<!-- Add an inline style for margin-bottom -->
+<button onclick="switchView('break')" style="margin-bottom: 20px;">Break Time Tracker</button>
+<button onclick="switchView('attendance')" style="margin-bottom: 20px;">Attendance Tracker</button>
+
+
+  <div id="break" style="display:block;">
+    <h2>Break Time Tracker - Morning Shift</h2>
+    <label for="userIDInput">Scan USERID:</label>
+    <input id="userIDInput" type="text">
+    <button onclick="recordTime()">Scan</button>
+    <div id="successMessage"></div>
+    <div id="errorMessage"></div>
+    <table>
+      <thead>
+        <tr>
+          <th>USERIDS</th>
+          <th>TIME OUT</th>
+          <th>TIME IN</th>
+          <th>TOTAL</th>
+          <th>ACTIONS</th>
+          <th>NOTES</th>
+        </tr>
+      </thead>
+      <tbody id="userTable"></tbody>
+    </table>
+  </div>
+
+  <div id="attendance" style="display:none;">
+    <h2>Attendance Tracker - Morning Shift</h2>
+    <label for="attendanceUserIDInput">Scan USERID:</label>
+    <input id="attendanceUserIDInput" type="text">
+    <button onclick="recordAttendanceTime()">Scan</button>
+    <div id="attendanceSuccessMessage"></div>
+    <div id="attendanceErrorMessage"></div>
+    <table>
+      <thead>
+        <tr>
+          <th>USERIDS</th>
+          <th>TIME IN</th>
+          <th>ACTIONS</th>
+          <th>NOTES</th>
+        </tr>
+      </thead>
+      <tbody id="attendanceUserTable"></tbody>
+    </table>
+  </div>
+
+<button onclick="exportBreakToExcel()" style="position: absolute; top: 20px; right: 20px;">Export Break Data to Excel</button>
+<button onclick="exportAttendanceToExcel()" style="position: absolute; top: 60px; right: 20px;">Export Attendance Data to Excel</button>
+
   <script>
     const users = {};
+    const attendanceUsers = {};
 
     function timeToMinutes(time) {
       const [hours, minutes] = time.split(':').map(Number);
       return hours * 60 + minutes;
     }
-
+    function switchView(view) {
+      document.getElementById('break').style.display = view === 'break' ? 'block' : 'none';
+      document.getElementById('attendance').style.display = view === 'attendance' ? 'block' : 'none';
+    }
     function minutesToTime(minutes) {
       const hours = Math.floor(minutes / 60);
       const mins = minutes % 60;
@@ -131,7 +168,7 @@
     function recordTime() {
       const userID = document.getElementById('userIDInput').value;
       if (!userID) {
-        displayMessage('Please enter a valid USERID.', 'error');
+      //  displayMessage('Please enter a valid USERID.', 'error');
         refocusInput();
         return;
       }
@@ -179,19 +216,93 @@
       renderTable();
     }
 
-    function refocusInput() {
-      document.getElementById('userIDInput').focus();
+    function refocusInput(tracker = 'break') {
+      const inputID = tracker === 'break' ? 'userIDInput' : 'attendanceUserIDInput';
+      document.getElementById(inputID).focus();
     }
 
-    function displayMessage(message, type) {
-      const messageDiv = document.getElementById(type === 'success' ? 'successMessage' : 'errorMessage');
+    function displayMessage(message, type, tracker = 'break') {
+      const messageID = tracker === 'break' 
+        ? (type === 'success' ? 'successMessage' : 'errorMessage') 
+        : (type === 'success' ? 'attendanceSuccessMessage' : 'attendanceErrorMessage');
+      const messageDiv = document.getElementById(messageID);
       messageDiv.innerText = message;
       messageDiv.style.display = 'block';
       setTimeout(() => {
         messageDiv.style.display = 'none';
       }, 5000);
     }
+    function recordAttendanceTime() {
+      const userID = document.getElementById('attendanceUserIDInput').value;
+      if (!userID) {
+        displayMessage('Please enter a valid USERID.', 'error', 'attendance');
+        refocusInput('attendance');
+        return;
+      }
 
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const currentTime = `${hours}:${minutes}`;
+
+      if (!attendanceUsers[userID]) {
+        attendanceUsers[userID] = {
+          timeIn: currentTime,
+          notes: ''
+        };
+        displayMessage(`User ${userID} checked in at ${currentTime}.`, 'success', 'attendance');
+      } else {
+        displayMessage('User already checked in for the day.', 'error', 'attendance');
+        refocusInput('attendance');
+        return;
+      }
+
+      renderAttendanceTable();
+      document.getElementById('attendanceUserIDInput').value = '';
+      refocusInput('attendance');
+    }
+
+    function deleteAttendanceUserData(userID) {
+      delete attendanceUsers[userID];
+      renderAttendanceTable();
+    }
+
+    function updateAttendanceNotes(userID, value) {
+      attendanceUsers[userID].notes = value;
+      renderAttendanceTable();
+    }
+
+    function renderAttendanceTable() {
+      const tbody = document.getElementById('attendanceUserTable');
+      tbody.innerHTML = '';
+
+      for (let userID in attendanceUsers) {
+        const notes = attendanceUsers[userID].notes || '';
+        const row = `<tr>
+          <td>${userID}</td>
+          <td>${attendanceUsers[userID].timeIn}</td>
+          <td><button onclick="deleteAttendanceUserData('${userID}')">Delete</button></td>
+          <td><input type="text" value="${notes}" onchange="updateAttendanceNotes('${userID}', this.value)"></td>
+        </tr>`;
+        tbody.innerHTML += row;
+      }
+    }
+    document.getElementById('userIDInput').addEventListener('keyup', function(event) {
+      if (event.keyCode === 13) {
+        recordTime();
+      }
+    });
+
+    // Add this for Attendance Tracker
+    document.getElementById('attendanceUserIDInput').addEventListener('keyup', function(event) {
+      if (event.keyCode === 13) {
+        recordAttendanceTime();
+      }
+    });
+    function switchView(view) {
+      document.getElementById('break').style.display = view === 'break' ? 'block' : 'none';
+      document.getElementById('attendance').style.display = view === 'attendance' ? 'block' : 'none';
+    }
     function renderTable() {
       const tbody = document.getElementById('userTable');
       tbody.innerHTML = '';
@@ -219,25 +330,38 @@
     });
 
     window.onload = function() {
-      refocusInput();
+      refocusInput('break');
     }
   </script>
   <script>
-    function exportToExcel() {
-      const ws_data = [['USERIDS', 'TIME OUT', 'TIME IN', 'TOTAL', 'NOTES']];
+  function exportBreakToExcel() {
+    const ws_data = [['USERIDS', 'TIME OUT', 'TIME IN', 'TOTAL', 'NOTES']];
 
-      for (let userID in users) {
-        const total = users[userID].timeOut ? getTimeDifference(users[userID].timeIn, users[userID].timeOut) : '-';
-        const notes = users[userID].notes || '';
-        ws_data.push([userID, users[userID].timeIn, users[userID].timeOut, total, notes]);
-      }
-
-      const ws = XLSX.utils.aoa_to_sheet(ws_data);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-
-      XLSX.writeFile(wb, "break_time_data.xlsx");
+    for (let userID in users) {
+      const total = users[userID].timeOut ? getTimeDifference(users[userID].timeIn, users[userID].timeOut) : '-';
+      const notes = users[userID].notes || '';
+      ws_data.push([userID, users[userID].timeIn, users[userID].timeOut, total, notes]);
     }
-  </script>
+
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Break_Time_Data");
+    XLSX.writeFile(wb, "break_time_data.xlsx");
+  }
+
+  function exportAttendanceToExcel() {
+    const ws_data = [['USERIDS', 'TIME IN', 'NOTES']];
+
+    for (let userID in attendanceUsers) {
+      const notes = attendanceUsers[userID].notes || '';
+      ws_data.push([userID, attendanceUsers[userID].timeIn, notes]);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Attendance_Data");
+    XLSX.writeFile(wb, "attendance_data.xlsx");
+  }
+</script>
 </body>
 </html>
