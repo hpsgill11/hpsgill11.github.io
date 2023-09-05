@@ -340,14 +340,15 @@ function renderTable() {
     }
   </script>
   <script>
-  function exportBreakToExcel() {
-    const ws_data = [['USERIDS', 'TIME OUT', 'TIME IN', 'TOTAL', 'NOTES']];
+function exportBreakToExcel() {
+  const ws_data = [['S.No', 'USERIDS', 'TIME OUT', 'TIME IN', 'TOTAL', 'NOTES']];  // Added 'S.No'
+  let serialNumber = 1; // Initialize the serial number
 
-    for (let userID in users) {
-      const total = users[userID].timeOut ? getTimeDifference(users[userID].timeIn, users[userID].timeOut) : '-';
-      const notes = users[userID].notes || '';
-      ws_data.push([userID, users[userID].timeIn, users[userID].timeOut, total, notes]);
-    }
+  for (let userID in users) {
+    const total = users[userID].timeOut ? getTimeDifference(users[userID].timeIn, users[userID].timeOut) : '-';
+    const notes = users[userID].notes || '';
+    ws_data.push([serialNumber++, userID, users[userID].timeIn, users[userID].timeOut, total, notes]);  // Added serialNumber
+  }
 
     const ws = XLSX.utils.aoa_to_sheet(ws_data);
     const wb = XLSX.utils.book_new();
@@ -355,13 +356,14 @@ function renderTable() {
     XLSX.writeFile(wb, "break_time_data.xlsx");
   }
 
-  function exportAttendanceToExcel() {
-    const ws_data = [['USERIDS', 'TIME IN', 'NOTES']];
+function exportAttendanceToExcel() {
+  const ws_data = [['S.No', 'USERIDS', 'TIME IN', 'NOTES']];  // Added 'S.No'
+  let serialNumber = 1; // Initialize the serial number
 
-    for (let userID in attendanceUsers) {
-      const notes = attendanceUsers[userID].notes || '';
-      ws_data.push([userID, attendanceUsers[userID].timeIn, notes]);
-    }
+  for (let userID in attendanceUsers) {
+    const notes = attendanceUsers[userID].notes || '';
+    ws_data.push([serialNumber++, userID, attendanceUsers[userID].timeIn, notes]);  // Added serialNumber
+  }
 
     const ws = XLSX.utils.aoa_to_sheet(ws_data);
     const wb = XLSX.utils.book_new();
