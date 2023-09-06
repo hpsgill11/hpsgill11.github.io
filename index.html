@@ -368,7 +368,7 @@ function renderTable() {
   </script>
   <script>
 function exportBreakToExcel() {
-  const ws_data = [['S.No', 'USERIDS', 'TIME OUT', 'TIME IN', 'TOTAL', 'NOTES']];  // Added 'S.No'
+  const ws_data = [['POUCH NO.', 'USERIDS', 'TIME OUT', 'TIME IN', 'TOTAL', 'NOTES']];  // Added 'S.No'
   let serialNumber = 1; // Initialize the serial number
 
   for (let userID in users) {
@@ -384,7 +384,7 @@ function exportBreakToExcel() {
   }
 
 function exportAttendanceToExcel() {
-  const ws_data = [['S.No', 'USERIDS', 'TIME IN', 'NOTES']];  // Added 'S.No'
+  const ws_data = [['SERIAL NO.', 'USERIDS', 'TIME IN', 'NOTES']];  // Added 'S.No'
   let serialNumber = 1; // Initialize the serial number
 
   for (let userID in attendanceUsers) {
