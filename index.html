@@ -324,10 +324,17 @@ function renderAttendanceTable() {
         recordAttendanceTime();
       }
     });
-    function switchView(view) {
-      document.getElementById('break').style.display = view === 'break' ? 'block' : 'none';
-      document.getElementById('attendance').style.display = view === 'attendance' ? 'block' : 'none';
-    }
+function switchView(view) {
+  document.getElementById('break').style.display = view === 'break' ? 'block' : 'none';
+  document.getElementById('attendance').style.display = view === 'attendance' ? 'block' : 'none';
+  
+  // Set focus to the corresponding input field
+  if (view === 'break') {
+    refocusInput('break');
+  } else if (view === 'attendance') {
+    refocusInput('attendance');
+  }
+}
 function renderTable() {
   const tbody = document.getElementById('userTable');
   tbody.innerHTML = '';
@@ -368,7 +375,7 @@ function renderTable() {
   </script>
   <script>
 function exportBreakToExcel() {
-  const ws_data = [['POUCH NO.', 'USERIDS', 'TIME OUT', 'TIME IN', 'TOTAL', 'NOTES']];  // Added 'S.No'
+  const ws_data = [['S.No', 'USERIDS', 'TIME OUT', 'TIME IN', 'TOTAL', 'NOTES']];  // Added 'S.No'
   let serialNumber = 1; // Initialize the serial number
 
   for (let userID in users) {
@@ -384,7 +391,7 @@ function exportBreakToExcel() {
   }
 
 function exportAttendanceToExcel() {
-  const ws_data = [['SERIAL NO.', 'USERIDS', 'TIME IN', 'NOTES']];  // Added 'S.No'
+  const ws_data = [['S.No', 'USERIDS', 'TIME IN', 'NOTES']];  // Added 'S.No'
   let serialNumber = 1; // Initialize the serial number
 
   for (let userID in attendanceUsers) {
