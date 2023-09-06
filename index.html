@@ -328,10 +328,14 @@ function renderAttendanceTable() {
         recordAttendanceTime();
       }
     });
-    function switchView(view) {
-      document.getElementById('break').style.display = view === 'break' ? 'block' : 'none';
-      document.getElementById('attendance').style.display = view === 'attendance' ? 'block' : 'none';
-    }
+function switchView(view) {
+  document.getElementById('break').style.display = view === 'break' ? 'block' : 'none';
+  document.getElementById('attendance').style.display = view === 'attendance' ? 'block' : 'none';
+  
+  // Add this line to refocus the input based on the current view.
+  refocusInput(view);
+}
+
 function renderTable() {
   const tbody = document.getElementById('userTable');
   tbody.innerHTML = '';
