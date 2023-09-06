@@ -108,12 +108,32 @@ th, td {
 table {
   table-layout: fixed;
 }
+/* Messages */
+#successMessage,
+#errorMessage,
+#attendanceSuccessMessage,
+#attendanceErrorMessage {
+  position: fixed; /* Fixed position */
+  top: 10px; /* Place them 10px from the top */
+  left: 50%; /* Center them horizontally */
+  transform: translateX(-50%); /* Adjust for exact centering */
+  z-index: 1000; /* Make sure they appear above all other elements */
+  display: none;
+  padding: 10px 15px;
+  margin: 10px 0;
+  border-radius: 5px;
+  width: auto; /* Auto width */
+}
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
 </head>
 <body>
-<!-- Add an inline style for margin-bottom -->
-<button onclick="switchView('break')" style="margin-bottom: 20px;">Break Time Tracker</button>
+  <div id="successMessage"></div>
+  <div id="errorMessage"></div>
+  <div id="attendanceSuccessMessage"></div>
+  <div id="attendanceErrorMessage"></div>
+
+  <button onclick="switchView('break')" style="margin-bottom: 20px;">Break Time Tracker</button>
 <button onclick="switchView('attendance')" style="margin-bottom: 20px;">Attendance Tracker</button>
 
 
