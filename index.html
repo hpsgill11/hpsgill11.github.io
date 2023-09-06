@@ -293,19 +293,25 @@ function renderAttendanceTable() {
   const tbody = document.getElementById('attendanceUserTable');
   tbody.innerHTML = '';
   let serialNumber = 1; // Initialize the serial number
+  let lastRow;
 
   for (let userID in attendanceUsers) {
-        const notes = attendanceUsers[userID].notes || '';
+    const notes = attendanceUsers[userID].notes || '';
     const row = `<tr>
       <td>${serialNumber++}</td> <!-- New Cell for Serial Number -->
       <td>${userID}</td>
-          <td>${attendanceUsers[userID].timeIn}</td>
-          <td><button onclick="deleteAttendanceUserData('${userID}')">Delete</button></td>
-          <td><input type="text" value="${notes}" onchange="updateAttendanceNotes('${userID}', this.value)"></td>
+      <td>${attendanceUsers[userID].timeIn}</td>
+      <td><button onclick="deleteAttendanceUserData('${userID}')">Delete</button></td>
+      <td><input type="text" value="${notes}" onchange="updateAttendanceNotes('${userID}', this.value)"></td>
     </tr>`;
     tbody.innerHTML += row;
+    lastRow = tbody.lastElementChild;
   }
+
+  // Scroll to the last added row
+  lastRow && lastRow.scrollIntoView();
 }
+
     document.getElementById('userIDInput').addEventListener('keyup', function(event) {
       if (event.keyCode === 13) {
         recordTime();
@@ -326,23 +332,29 @@ function renderTable() {
   const tbody = document.getElementById('userTable');
   tbody.innerHTML = '';
   let serialNumber = 1; // Initialize the serial number
+  let lastRow;
 
   for (let userID in users) {
-        const total = users[userID].timeOut ? getTimeDifference(users[userID].timeIn, users[userID].timeOut) : '-';
-        const isHighlighted = total !== '-' && timeToMinutes(total) > 15 ? 'highlight' : '';
-        const notes = users[userID].notes || '';
+    const total = users[userID].timeOut ? getTimeDifference(users[userID].timeIn, users[userID].timeOut) : '-';
+    const isHighlighted = total !== '-' && timeToMinutes(total) > 15 ? 'highlight' : '';
+    const notes = users[userID].notes || '';
     const row = `<tr>
       <td>${serialNumber++}</td> <!-- New Cell for Serial Number -->
       <td>${userID}</td>
-          <td><input type="time" value="${users[userID].timeIn}" onchange="updateTime('${userID}', 'timeIn', this.value)"></td>
-          <td><input type="time" value="${users[userID].timeOut}" onchange="updateTime('${userID}', 'timeOut', this.value)"></td>
-          <td class="${isHighlighted}">${total}</td>
-          <td><button onclick="deleteUserData('${userID}')">Delete</button></td>
-          <td><input type="text" value="${notes}" onchange="updateNotes('${userID}', this.value)"></td>
+      <td><input type="time" value="${users[userID].timeIn}" onchange="updateTime('${userID}', 'timeIn', this.value)"></td>
+      <td><input type="time" value="${users[userID].timeOut}" onchange="updateTime('${userID}', 'timeOut', this.value)"></td>
+      <td class="${isHighlighted}">${total}</td>
+      <td><button onclick="deleteUserData('${userID}')">Delete</button></td>
+      <td><input type="text" value="${notes}" onchange="updateNotes('${userID}', this.value)"></td>
     </tr>`;
     tbody.innerHTML += row;
+    lastRow = tbody.lastElementChild;
   }
+  
+  // Scroll to the last added row
+  lastRow && lastRow.scrollIntoView();
 }
+
 
     document.getElementById('userIDInput').addEventListener('keyup', function(event) {
       if (event.keyCode === 13) {
