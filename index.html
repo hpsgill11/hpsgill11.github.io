@@ -100,6 +100,14 @@
       width: 100%;
       table-layout: fixed;
     }
+th, td {
+  width: calc(100% / 7); /* Divide by the number of columns */
+  box-sizing: border-box;
+}
+
+table {
+  table-layout: fixed;
+}
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
 </head>
