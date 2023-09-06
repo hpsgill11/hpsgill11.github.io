@@ -206,11 +206,13 @@
         if (!users[userID].timeOut) {
           users[userID].timeOut = currentTime;
           displayMessage(`User ${userID} checked out at ${currentTime}.`, 'success');
-        } else {
-          displayMessage('User already scanned in and out for the day.', 'error');
-          refocusInput();
-          return;
-        }
+        }   else {
+    displayMessage('User already scanned in and out for the day.', 'error');
+    document.getElementById('userIDInput').value = ''; // Clear the input field
+    refocusInput(); // Refocus the input field
+    return;
+  }
+
       }
 
       renderTable();
@@ -268,11 +270,13 @@
           notes: ''
         };
         displayMessage(`User ${userID} checked in at ${currentTime}.`, 'success', 'attendance');
-      } else {
-        displayMessage('User already checked in for the day.', 'error', 'attendance');
-        refocusInput('attendance');
-        return;
-      }
+      }   else {
+    displayMessage('User already checked in for the day.', 'error', 'attendance');
+    document.getElementById('attendanceUserIDInput').value = ''; // Clear the input field
+    refocusInput('attendance'); // Refocus the input field
+    return;
+  }
+
 
       renderAttendanceTable();
       document.getElementById('attendanceUserIDInput').value = '';
@@ -324,17 +328,10 @@ function renderAttendanceTable() {
         recordAttendanceTime();
       }
     });
-function switchView(view) {
-  document.getElementById('break').style.display = view === 'break' ? 'block' : 'none';
-  document.getElementById('attendance').style.display = view === 'attendance' ? 'block' : 'none';
-  
-  // Set focus to the corresponding input field
-  if (view === 'break') {
-    refocusInput('break');
-  } else if (view === 'attendance') {
-    refocusInput('attendance');
-  }
-}
+    function switchView(view) {
+      document.getElementById('break').style.display = view === 'break' ? 'block' : 'none';
+      document.getElementById('attendance').style.display = view === 'attendance' ? 'block' : 'none';
+    }
 function renderTable() {
   const tbody = document.getElementById('userTable');
   tbody.innerHTML = '';
@@ -375,7 +372,7 @@ function renderTable() {
   </script>
   <script>
 function exportBreakToExcel() {
-  const ws_data = [['S.No', 'USERIDS', 'TIME OUT', 'TIME IN', 'TOTAL', 'NOTES']];  // Added 'S.No'
+  const ws_data = [['POUCH NO.', 'USERIDS', 'TIME OUT', 'TIME IN', 'TOTAL', 'NOTES']];  // Added 'S.No'
   let serialNumber = 1; // Initialize the serial number
 
   for (let userID in users) {
@@ -391,7 +388,7 @@ function exportBreakToExcel() {
   }
 
 function exportAttendanceToExcel() {
-  const ws_data = [['S.No', 'USERIDS', 'TIME IN', 'NOTES']];  // Added 'S.No'
+  const ws_data = [['SERIAL NO.', 'USERIDS', 'TIME IN', 'NOTES']];  // Added 'S.No'
   let serialNumber = 1; // Initialize the serial number
 
   for (let userID in attendanceUsers) {
