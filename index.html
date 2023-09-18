@@ -226,7 +226,7 @@ table {
 </div>
 <button onclick="exportBreakToExcel()" style="position: absolute; top: 20px; right: 20px;">Export Break Data to Excel</button>
 <button onclick="exportAttendanceToExcel()" style="position: absolute; top: 60px; right: 20px;">Export Attendance Data to Excel</button>
-<button onclick="exportCustomSerialToExcel()" style="position: absolute; top: 100px; right: 20px;">Export Custom Serial Data to Excel</button>
+<button onclick="exportCustomSerialToExcel()" style="position: absolute; top: 100px; right: 20px;">Export Pouch Data to Excel</button>
   <script>
     const users = {};
     const attendanceUsers = {};
@@ -615,9 +615,11 @@ function exportBreakToExcel() {
         let serialNumber = 1; // Initialize the serial number
 
         for (let userID in allData) {
-            const total = allData[userID].timeOut ? getTimeDifference(allData[userID].timeIn, allData[userID].timeOut) : '-';
+            const totalData = allData[userID].timeOut 
+                ? getTimeDifference(allData[userID].timeIn, allData[userID].timeOut).time 
+                : '-';
             const notes = allData[userID].notes || '';
-            ws_data.push([serialNumber++, userID, allData[userID].timeIn, allData[userID].timeOut, total, notes]);
+            ws_data.push([serialNumber++, userID, allData[userID].timeIn, allData[userID].timeOut, totalData, notes]);
         }
 
         const ws = XLSX.utils.aoa_to_sheet(ws_data);
@@ -626,6 +628,7 @@ function exportBreakToExcel() {
         XLSX.writeFile(wb, "break_time_data.xlsx");
     });
 }
+
 
 function exportAttendanceToExcel() {
     firebase.database().ref('attendance/').once('value').then((snapshot) => {
