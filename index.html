@@ -438,6 +438,8 @@ const row = `<tr>
 </tr>`;
 
             tbody.innerHTML += row;
+    // Add this line to scroll to the bottom:
+    scrollToBottom('attendanceUserTable');
         }
     });
 }
@@ -454,6 +456,10 @@ const row = `<tr>
         recordAttendanceTime();
       }
     });
+function scrollToBottom(tableId) {
+    const tbody = document.getElementById(tableId);
+    tbody.scrollTop = tbody.scrollHeight;
+}
 
 function switchView(view) {
     document.getElementById('break').style.display = view === 'break' ? 'block' : 'none';
@@ -493,6 +499,8 @@ const totalData = userData.timeOut ? getTimeDifference(userData.timeIn, userData
                     <td><input class="center-align-input" value="${notes}" onchange="updateNotes('${userID}', this.value)" /></td>
                 </tr>`;
                 tbody.innerHTML += row;
+    // Add this line to scroll to the bottom:
+    scrollToBottom('userTable');
             }
         }
     });
@@ -561,6 +569,8 @@ function renderCustomSerialTable() {
             </tr>`;
 
             tbody.innerHTML += row;
+    // Add this line to scroll to the bottom:
+    scrollToBottom('customSerialTable');
         }
     });
 }
