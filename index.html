@@ -253,13 +253,18 @@ firebase.database().ref('customSerial/').once('value').then((snapshot) => {
       return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
     }
 
-    function getTimeDifference(start, end) {
-      const startTime = timeToMinutes(start);
-      const endTime = timeToMinutes(end);
-      const difference = endTime - startTime;
-      if (difference < 0) return 'Invalid';
-      return minutesToTime(difference);
-    }
+function getTimeDifference(start, end) {
+    const startTime = timeToMinutes(start);
+    const endTime = timeToMinutes(end);
+    const difference = endTime - startTime;
+    
+    if (difference < 0) return { time: 'Invalid', isLate: false };
+
+    const isLate = difference > 15;
+    const timeText = `${minutesToTime(difference)}${isLate ? " (Late)" : ""}`;
+    return { time: timeText, isLate: isLate };
+}
+
 
 function recordTime() {
   const userID = document.getElementById('userIDInput').value;
@@ -475,14 +480,15 @@ function renderTable() {
                     serialNumber++;
                 }
                 const pouchOrSerial = userData.pouch || serialNumber++; // Use pouch number if available, else use serial number
-                const total = userData.timeOut ? getTimeDifference(userData.timeIn, userData.timeOut) : '-';
+const totalData = userData.timeOut ? getTimeDifference(userData.timeIn, userData.timeOut) : { time: '-', isLate: false };
                 const notes = userData.notes || '';
                 const row = `<tr data-userid="${userID}">
                     <td>${pouchOrSerial}</td>
                     <td>${userID}</td>
                     <td><input class="center-align-input" value="${userData.timeIn}" onchange="updateTimeIn('${userID}', this.value)" /></td>
                     <td><input class="center-align-input" value="${userData.timeOut}" onchange="updateTimeOut('${userID}', this.value)" /></td>
-                    <td>${total}</td>
+<td${totalData.isLate ? ' class="highlight"' : ''}>${totalData.time}</td>
+
                     <td><button onclick="deleteUserData('${userID}')">Delete</button></td>
                     <td><input class="center-align-input" value="${notes}" onchange="updateNotes('${userID}', this.value)" /></td>
                 </tr>`;
