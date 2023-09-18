@@ -124,8 +124,29 @@ table {
   border-radius: 5px;
   width: auto; /* Auto width */
 }
+/* Center-align text for specific input fields */
+.center-align-input {
+  text-align: center;
+}
   </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"> </script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDCXrQGBQcueZQmI3mUstKA0dntmttpZT0",
+    authDomain: "breaktracker-62b1a.firebaseapp.com",
+    databaseURL: "https://breaktracker-62b1a-default-rtdb.firebaseio.com",
+    projectId: "breaktracker-62b1a",
+    storageBucket: "breaktracker-62b1a.appspot.com",
+    messagingSenderId: "269997389846",
+    appId: "1:269997389846:web:3147becfbe6be9bbca9d37",
+    measurementId: "G-ZSEHN89M3J"
+  };
+
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+</script>
 </head>
 <body>
   <div id="successMessage"></div>
@@ -210,58 +231,74 @@ table {
       return minutesToTime(difference);
     }
 
-    function recordTime() {
-      const userID = document.getElementById('userIDInput').value;
-      if (!userID) {
-      //  displayMessage('Please enter a valid USERID.', 'error');
-        refocusInput();
+function recordTime() {
+  const userID = document.getElementById('userIDInput').value;
+  const now = new Date();
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const currentTime = `${hours}:${minutes}`;
+
+  // Check if user exists
+  firebase.database().ref('break/' + userID).once('value').then((snapshot) => {
+    let userData = snapshot.val();
+    if (!userData) {
+      userData = {
+        timeIn: currentTime,
+        timeOut: '',
+        notes: ''
+      };
+      firebase.database().ref('break/' + userID).set(userData);
+      displayMessage(`User ${userID} checked out at ${currentTime}.`, 'success');
+    } else if (!userData.timeOut) {
+      userData.timeOut = currentTime;
+      firebase.database().ref('break/' + userID).update(userData);
+      displayMessage(`User ${userID} checked in at ${currentTime}.`, 'success');
+    } else {
+      displayMessage('User already scanned in and out for the day.', 'error');
+    }
+
+    renderTable();
+    document.getElementById('userIDInput').value = '';
+    refocusInput();
+  });
+}
+
+function deleteUserData(userID) {
+    firebase.database().ref('break/' + userID).remove().then(() => {
+        renderTable();
+    }).catch((error) => {
+        console.error('Error deleting user data:', error);
+    });
+}
+
+function isValidTime(value) {
+    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    return timeRegex.test(value);
+}
+
+function updateTimeIn(userID, value) {
+    if (!isValidTime(value)) {
+        alert('Please enter a valid time in HH:MM format.');
         return;
-      }
-
-      const now = new Date();
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      const currentTime = `${hours}:${minutes}`;
-
-      if (!users[userID]) {
-        users[userID] = {
-          timeIn: currentTime,
-          timeOut: '',
-          notes: ''
-        };
-        displayMessage(`User ${userID} checked in at ${currentTime}.`, 'success');
-      } else {
-        if (!users[userID].timeOut) {
-          users[userID].timeOut = currentTime;
-          displayMessage(`User ${userID} checked out at ${currentTime}.`, 'success');
-        }   else {
-    displayMessage('User already scanned in and out for the day.', 'error');
-    document.getElementById('userIDInput').value = ''; // Clear the input field
-    refocusInput(); // Refocus the input field
-    return;
-  }
-
-      }
-
-      renderTable();
-      document.getElementById('userIDInput').value = '';
-      refocusInput();
     }
+    firebase.database().ref('break/' + userID).update({timeIn: value});
+    renderTable();  // Re-render the table to update the total time
+}
 
-    function deleteUserData(userID) {
-      delete users[userID];
-      renderTable();
+function updateTimeOut(userID, value) {
+    if (!isValidTime(value)) {
+        alert('Please enter a valid time in HH:MM format.');
+        return;
     }
+    firebase.database().ref('break/' + userID).update({timeOut: value});
+    renderTable();  // Re-render the table to update the total time
+}
 
-    function updateTime(userID, type, value) {
-      users[userID][type] = value;
-      renderTable();
-    }
 
-    function updateNotes(userID, value) {
-      users[userID].notes = value;
-      renderTable();
-    }
+function updateNotes(userID, value) {
+    firebase.database().ref('break/' + userID).update({notes: value});
+}
+
 
     function refocusInput(tracker = 'break') {
       const inputID = tracker === 'break' ? 'userIDInput' : 'attendanceUserIDInput';
@@ -279,69 +316,68 @@ table {
         messageDiv.style.display = 'none';
       }, 5000);
     }
-    function recordAttendanceTime() {
-      const userID = document.getElementById('attendanceUserIDInput').value;
-      if (!userID) {
-        displayMessage('Please enter a valid USERID.', 'error', 'attendance');
+function recordAttendanceTime() {
+    const userID = document.getElementById('attendanceUserIDInput').value;
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const currentTime = `${hours}:${minutes}`;
+
+    firebase.database().ref('attendance/' + userID).once('value').then((snapshot) => {
+        let userData = snapshot.val();
+        if (!userData) {
+            userData = {
+                timeIn: currentTime,
+                notes: ''
+            };
+            firebase.database().ref('attendance/' + userID).set(userData);
+            displayMessage(`User ${userID} checked in at ${currentTime}.`, 'success', 'attendance');
+        } else {
+            displayMessage('User already checked in for the day.', 'error', 'attendance');
+        }
+
+        renderAttendanceTable();
+        document.getElementById('attendanceUserIDInput').value = '';
         refocusInput('attendance');
-        return;
-      }
-
-      const now = new Date();
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      const currentTime = `${hours}:${minutes}`;
-
-      if (!attendanceUsers[userID]) {
-        attendanceUsers[userID] = {
-          timeIn: currentTime,
-          notes: ''
-        };
-        displayMessage(`User ${userID} checked in at ${currentTime}.`, 'success', 'attendance');
-      }   else {
-    displayMessage('User already checked in for the day.', 'error', 'attendance');
-    document.getElementById('attendanceUserIDInput').value = ''; // Clear the input field
-    refocusInput('attendance'); // Refocus the input field
-    return;
-  }
+    });
+}
 
 
-      renderAttendanceTable();
-      document.getElementById('attendanceUserIDInput').value = '';
-      refocusInput('attendance');
-    }
+function deleteAttendanceUserData(userID) {
+    firebase.database().ref('attendance/' + userID).remove().then(() => {
+        renderAttendanceTable();
+    }).catch((error) => {
+        console.error('Error deleting attendance data:', error);
+    });
+}
 
-    function deleteAttendanceUserData(userID) {
-      delete attendanceUsers[userID];
-      renderAttendanceTable();
-    }
+function updateAttendanceNotes(userID, value) {
+    firebase.database().ref('attendance/' + userID).update({notes: value});
+}
 
-    function updateAttendanceNotes(userID, value) {
-      attendanceUsers[userID].notes = value;
-      renderAttendanceTable();
-    }
 
 function renderAttendanceTable() {
-  const tbody = document.getElementById('attendanceUserTable');
-  tbody.innerHTML = '';
-  let serialNumber = 1; // Initialize the serial number
-  let lastRow;
+    const tbody = document.getElementById('attendanceUserTable');
+    tbody.innerHTML = '';
+    
+    firebase.database().ref('attendance/').once('value').then((snapshot) => {
+        let allData = snapshot.val();
+        let serialNumber = 1; // Initialize the serial number
 
-  for (let userID in attendanceUsers) {
-    const notes = attendanceUsers[userID].notes || '';
-    const row = `<tr>
-      <td>${serialNumber++}</td> <!-- New Cell for Serial Number -->
-      <td>${userID}</td>
-      <td>${attendanceUsers[userID].timeIn}</td>
-      <td><button onclick="deleteAttendanceUserData('${userID}')">Delete</button></td>
-      <td><input type="text" value="${notes}" onchange="updateAttendanceNotes('${userID}', this.value)"></td>
-    </tr>`;
-    tbody.innerHTML += row;
-    lastRow = tbody.lastElementChild;
-  }
+        for (let userID in allData) {
+            let userData = allData[userID];
+            const notes = userData.notes || '';
+const row = `<tr>
+    <td>${serialNumber++}</td>
+    <td>${userID}</td>
+    <td><input class="center-align-input" value="${userData.timeIn}" /></td>
+    <td><button onclick="deleteAttendanceUserData('${userID}')">Delete</button></td>
+    <td><input class="center-align-input" value="${notes}" onchange="updateAttendanceNotes('${userID}', this.value)" /></td>
+</tr>`;
 
-  // Scroll to the last added row
-  lastRow && lastRow.scrollIntoView();
+            tbody.innerHTML += row;
+        }
+    });
 }
 
     document.getElementById('userIDInput').addEventListener('keyup', function(event) {
@@ -363,33 +399,36 @@ function switchView(view) {
   // Add this line to refocus the input based on the current view.
   refocusInput(view);
 }
-
 function renderTable() {
   const tbody = document.getElementById('userTable');
   tbody.innerHTML = '';
-  let serialNumber = 1; // Initialize the serial number
-  let lastRow;
 
-  for (let userID in users) {
-    const total = users[userID].timeOut ? getTimeDifference(users[userID].timeIn, users[userID].timeOut) : '-';
-    const isHighlighted = total !== '-' && timeToMinutes(total) > 15 ? 'highlight' : '';
-    const notes = users[userID].notes || '';
-    const row = `<tr>
-      <td>${serialNumber++}</td> <!-- New Cell for Serial Number -->
-      <td>${userID}</td>
-      <td><input type="time" value="${users[userID].timeIn}" onchange="updateTime('${userID}', 'timeIn', this.value)"></td>
-      <td><input type="time" value="${users[userID].timeOut}" onchange="updateTime('${userID}', 'timeOut', this.value)"></td>
-      <td class="${isHighlighted}">${total}</td>
-      <td><button onclick="deleteUserData('${userID}')">Delete</button></td>
-      <td><input type="text" value="${notes}" onchange="updateNotes('${userID}', this.value)"></td>
-    </tr>`;
-    tbody.innerHTML += row;
-    lastRow = tbody.lastElementChild;
-  }
-  
-  // Scroll to the last added row
-  lastRow && lastRow.scrollIntoView();
+  firebase.database().ref('break/').once('value').then((snapshot) => {
+    let allData = snapshot.val();
+    let serialNumber = 1; // Initialize the serial number
+
+    for (let userID in allData) {
+      let userData = allData[userID];
+
+      // Check if a row with the same userID already exists in the table
+      if (!document.querySelector(`#userTable tr[data-userid="${userID}"]`)) {
+        const total = userData.timeOut ? getTimeDifference(userData.timeIn, userData.timeOut) : '-';
+        const notes = userData.notes || '';
+const row = `<tr data-userid="${userID}">
+    <td>${serialNumber++}</td>
+    <td>${userID}</td>
+    <td><input class="center-align-input" value="${userData.timeIn}" onchange="updateTimeIn('${userID}', this.value)" /></td>
+    <td><input class="center-align-input" value="${userData.timeOut}" onchange="updateTimeOut('${userID}', this.value)" /></td>
+    <td>${total}</td>
+    <td><button onclick="deleteUserData('${userID}')">Delete</button></td>
+    <td><input class="center-align-input" value="${notes}" onchange="updateNotes('${userID}', this.value)" /></td>
+</tr>`;
+        tbody.innerHTML += row;
+      }
+    }
+  });
 }
+ 
 
 
     document.getElementById('userIDInput').addEventListener('keyup', function(event) {
@@ -398,41 +437,52 @@ function renderTable() {
       }
     });
 
-    window.onload = function() {
-      refocusInput('break');
-    }
+window.onload = function() {
+  refocusInput('break');
+  renderTable();
+  renderAttendanceTable();
+}
   </script>
   <script>
 function exportBreakToExcel() {
-  const ws_data = [['POUCH NO.', 'USERIDS', 'TIME OUT', 'TIME IN', 'TOTAL', 'NOTES']];  // Added 'S.No'
-  let serialNumber = 1; // Initialize the serial number
+    firebase.database().ref('break/').once('value').then((snapshot) => {
+        let allData = snapshot.val();
 
-  for (let userID in users) {
-    const total = users[userID].timeOut ? getTimeDifference(users[userID].timeIn, users[userID].timeOut) : '-';
-    const notes = users[userID].notes || '';
-    ws_data.push([serialNumber++, userID, users[userID].timeIn, users[userID].timeOut, total, notes]);  // Added serialNumber
-  }
+        const ws_data = [['POUCH NO.', 'USERIDS', 'TIME OUT', 'TIME IN', 'TOTAL', 'NOTES']];
+        let serialNumber = 1; // Initialize the serial number
 
-    const ws = XLSX.utils.aoa_to_sheet(ws_data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Break_Time_Data");
-    XLSX.writeFile(wb, "break_time_data.xlsx");
-  }
+        for (let userID in allData) {
+            const total = allData[userID].timeOut ? getTimeDifference(allData[userID].timeIn, allData[userID].timeOut) : '-';
+            const notes = allData[userID].notes || '';
+            ws_data.push([serialNumber++, userID, allData[userID].timeIn, allData[userID].timeOut, total, notes]);
+        }
+
+        const ws = XLSX.utils.aoa_to_sheet(ws_data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Break_Time_Data");
+        XLSX.writeFile(wb, "break_time_data.xlsx");
+    });
+}
 
 function exportAttendanceToExcel() {
-  const ws_data = [['SERIAL NO.', 'USERIDS', 'TIME IN', 'NOTES']];  // Added 'S.No'
-  let serialNumber = 1; // Initialize the serial number
+    firebase.database().ref('attendance/').once('value').then((snapshot) => {
+        let allData = snapshot.val();
 
-  for (let userID in attendanceUsers) {
-    const notes = attendanceUsers[userID].notes || '';
-    ws_data.push([serialNumber++, userID, attendanceUsers[userID].timeIn, notes]);  // Added serialNumber
-  }
+        const ws_data = [['SERIAL NO.', 'USERIDS', 'TIME IN', 'NOTES']];
+        let serialNumber = 1; // Initialize the serial number
 
-    const ws = XLSX.utils.aoa_to_sheet(ws_data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Attendance_Data");
-    XLSX.writeFile(wb, "attendance_data.xlsx");
-  }
+        for (let userID in allData) {
+            const notes = allData[userID].notes || '';
+            ws_data.push([serialNumber++, userID, allData[userID].timeIn, notes]);
+        }
+
+        const ws = XLSX.utils.aoa_to_sheet(ws_data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Attendance_Data");
+        XLSX.writeFile(wb, "attendance_data.xlsx");
+    });
+}
+
 </script>
 </body>
 </html>
