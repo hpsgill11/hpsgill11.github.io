@@ -405,10 +405,12 @@ function switchView(view) {
 function renderTable() {
   const tbody = document.getElementById('userTable');
   
+  // Fetch data from Firebase
   firebase.database().ref('break/').once('value').then((snapshot) => {
     let allData = snapshot.val();
     let serialNumber = 1; // Initialize the serial number
 
+    // Iterate over each userID and render the rows
     for (let userID in allData) {
       let userData = allData[userID];
       const total = userData.timeOut ? getTimeDifference(userData.timeIn, userData.timeOut) : '-';
@@ -420,6 +422,7 @@ function renderTable() {
       // Check if a row with the same userID already exists in the table
       const existingRow = document.querySelector(`#userTable tr[data-userid="${userID}"]`);
       if (existingRow) {
+        existingRow.cells[0].textContent = serialNumber++; // Update the serial number for the existing row
         existingRow.cells[2].querySelector('input').value = userData.timeIn;
         existingRow.cells[3].querySelector('input').value = userData.timeOut;
         existingRow.cells[4].textContent = total;
@@ -440,6 +443,7 @@ function renderTable() {
     }
   });
 }
+
 
 
     document.getElementById('userIDInput').addEventListener('keyup', function(event) {
