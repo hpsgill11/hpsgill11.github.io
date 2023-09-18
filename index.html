@@ -128,6 +128,9 @@ table {
 .center-align-input {
   text-align: center;
 }
+.highlight {
+    color: red;
+}
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"> </script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -401,34 +404,42 @@ function switchView(view) {
 }
 function renderTable() {
   const tbody = document.getElementById('userTable');
-  tbody.innerHTML = '';
-
+  
   firebase.database().ref('break/').once('value').then((snapshot) => {
     let allData = snapshot.val();
     let serialNumber = 1; // Initialize the serial number
 
     for (let userID in allData) {
       let userData = allData[userID];
+      const total = userData.timeOut ? getTimeDifference(userData.timeIn, userData.timeOut) : '-';
+      const notes = userData.notes || '';
+      
+      // Check if total time exceeds 15 minutes
+      const highlightClass = (total !== '-' && timeToMinutes(total) > 15) ? 'highlight' : '';
 
       // Check if a row with the same userID already exists in the table
-      if (!document.querySelector(`#userTable tr[data-userid="${userID}"]`)) {
-        const total = userData.timeOut ? getTimeDifference(userData.timeIn, userData.timeOut) : '-';
-        const notes = userData.notes || '';
-const row = `<tr data-userid="${userID}">
-    <td>${serialNumber++}</td>
-    <td>${userID}</td>
-    <td><input class="center-align-input" value="${userData.timeIn}" onchange="updateTimeIn('${userID}', this.value)" /></td>
-    <td><input class="center-align-input" value="${userData.timeOut}" onchange="updateTimeOut('${userID}', this.value)" /></td>
-    <td>${total}</td>
-    <td><button onclick="deleteUserData('${userID}')">Delete</button></td>
-    <td><input class="center-align-input" value="${notes}" onchange="updateNotes('${userID}', this.value)" /></td>
-</tr>`;
+      const existingRow = document.querySelector(`#userTable tr[data-userid="${userID}"]`);
+      if (existingRow) {
+        existingRow.cells[2].querySelector('input').value = userData.timeIn;
+        existingRow.cells[3].querySelector('input').value = userData.timeOut;
+        existingRow.cells[4].textContent = total;
+        existingRow.cells[4].className = highlightClass;
+        existingRow.cells[6].querySelector('input').value = notes;
+      } else {
+        const row = `<tr data-userid="${userID}">
+            <td>${serialNumber++}</td>
+            <td>${userID}</td>
+            <td><input class="center-align-input" value="${userData.timeIn}" onchange="updateTimeIn('${userID}', this.value)" /></td>
+            <td><input class="center-align-input" value="${userData.timeOut}" onchange="updateTimeOut('${userID}', this.value)" /></td>
+            <td class="${highlightClass}">${total}</td>
+            <td><button onclick="deleteUserData('${userID}')">Delete</button></td>
+            <td><input class="center-align-input" value="${notes}" onchange="updateNotes('${userID}', this.value)" /></td>
+        </tr>`;
         tbody.innerHTML += row;
       }
     }
   });
 }
- 
 
 
     document.getElementById('userIDInput').addEventListener('keyup', function(event) {
