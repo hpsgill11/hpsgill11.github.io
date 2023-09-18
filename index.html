@@ -156,6 +156,7 @@ table {
 
   <button onclick="switchView('break')" style="margin-bottom: 20px;">Break Time Tracker</button>
 <button onclick="switchView('attendance')" style="margin-bottom: 20px;">Attendance Tracker</button>
+<button onclick="switchView('customSerial')" style="margin-bottom: 20px;">Pouch Database</button>
 
 
   <div id="break" style="display:block;">
@@ -201,13 +202,42 @@ table {
       <tbody id="attendanceUserTable"></tbody>
     </table>
   </div>
-
+<!-- Custom Serial Number Tracker -->
+<div id="customSerial" style="display:none;">
+    <h2>Pouch Database - Morning Shift</h2>
+    <label for="customSerialInput">Enter Pouch Number:</label>
+    <input id="customSerialInput" type="text">
+    <label for="customUserIDInput">Scan USERID:</label>
+    <input id="customUserIDInput" type="text">
+    <button onclick="recordCustomSerial()">Scan</button>
+    <div id="customSuccessMessage"></div>
+    <div id="customErrorMessage"></div>
+    <table>
+        <thead>
+            <tr>
+                <th>POUCH #</th>
+                <th>USERIDS</th>
+                <th>ACTIONS</th>
+                <th>NOTES</th>
+            </tr>
+        </thead>
+        <tbody id="customSerialTable"></tbody>
+    </table>
+</div>
 <button onclick="exportBreakToExcel()" style="position: absolute; top: 20px; right: 20px;">Export Break Data to Excel</button>
 <button onclick="exportAttendanceToExcel()" style="position: absolute; top: 60px; right: 20px;">Export Attendance Data to Excel</button>
-
+<button onclick="exportCustomSerialToExcel()" style="position: absolute; top: 100px; right: 20px;">Export Custom Serial Data to Excel</button>
   <script>
     const users = {};
     const attendanceUsers = {};
+let pouchNumbersSet = new Set();
+
+firebase.database().ref('customSerial/').once('value').then((snapshot) => {
+    let allData = snapshot.val();
+    for (let userID in allData) {
+        pouchNumbersSet.add(allData[userID].customSerial);
+    }
+});
 
     function timeToMinutes(time) {
       const [hours, minutes] = time.split(':').map(Number);
@@ -233,16 +263,39 @@ table {
 
 function recordTime() {
   const userID = document.getElementById('userIDInput').value;
+  
+  // First check the Pouch Database for the userID
+  firebase.database().ref('customSerial/' + userID).once('value').then((snapshot) => {
+    let pouchData = snapshot.val();
+    let pouchNumber = pouchData ? pouchData.customSerial : null;
+
+    if (pouchNumber) {
+      // Check if pouch number is already in use in Break Tracker
+      firebase.database().ref('break/').orderByChild('pouch').equalTo(pouchNumber).once('value').then((snapshot) => {
+        if (snapshot.val()) {
+          displayMessage(`Pouch Number ${pouchNumber} is already in use.`, 'error');
+          return;
+        }
+        processUserBreak(userID, pouchNumber);
+      });
+    } else {
+      processUserBreak(userID, pouchNumber);
+    }
+  });
+}
+
+function processUserBreak(userID, pouchNumber) {
   const now = new Date();
   const hours = String(now.getHours()).padStart(2, '0');
   const minutes = String(now.getMinutes()).padStart(2, '0');
   const currentTime = `${hours}:${minutes}`;
-
-  // Check if user exists
+  
+  // Check if user exists in Break Tracker
   firebase.database().ref('break/' + userID).once('value').then((snapshot) => {
     let userData = snapshot.val();
     if (!userData) {
       userData = {
+        pouch: pouchNumber || '', // Store the pouch number if available, else keep it empty
         timeIn: currentTime,
         timeOut: '',
         notes: ''
@@ -262,6 +315,8 @@ function recordTime() {
     refocusInput();
   });
 }
+
+
 
 function deleteUserData(userID) {
     firebase.database().ref('break/' + userID).remove().then(() => {
@@ -392,43 +447,49 @@ const row = `<tr>
         recordAttendanceTime();
       }
     });
+
 function switchView(view) {
-  document.getElementById('break').style.display = view === 'break' ? 'block' : 'none';
-  document.getElementById('attendance').style.display = view === 'attendance' ? 'block' : 'none';
-  
-  // Add this line to refocus the input based on the current view.
-  refocusInput(view);
+    document.getElementById('break').style.display = view === 'break' ? 'block' : 'none';
+    document.getElementById('attendance').style.display = view === 'attendance' ? 'block' : 'none';
+    document.getElementById('customSerial').style.display = view === 'customSerial' ? 'block' : 'none';
+    
+    // Add this line to refocus the input based on the current view.
+    refocusInput(view);
 }
 function renderTable() {
-  const tbody = document.getElementById('userTable');
-  tbody.innerHTML = '';
+    const tbody = document.getElementById('userTable');
+    tbody.innerHTML = '';
 
-  firebase.database().ref('break/').once('value').then((snapshot) => {
-    let allData = snapshot.val();
-    let serialNumber = 1; // Initialize the serial number
+    firebase.database().ref('break/').once('value').then((snapshot) => {
+        let allData = snapshot.val();
+        let serialNumber = 1; // Initialize the serial number
 
-    for (let userID in allData) {
-      let userData = allData[userID];
-
-      // Check if a row with the same userID already exists in the table
-      if (!document.querySelector(`#userTable tr[data-userid="${userID}"]`)) {
-        const total = userData.timeOut ? getTimeDifference(userData.timeIn, userData.timeOut) : '-';
-        const notes = userData.notes || '';
-const row = `<tr data-userid="${userID}">
-    <td>${serialNumber++}</td>
-    <td>${userID}</td>
-    <td><input class="center-align-input" value="${userData.timeIn}" onchange="updateTimeIn('${userID}', this.value)" /></td>
-    <td><input class="center-align-input" value="${userData.timeOut}" onchange="updateTimeOut('${userID}', this.value)" /></td>
-    <td>${total}</td>
-    <td><button onclick="deleteUserData('${userID}')">Delete</button></td>
-    <td><input class="center-align-input" value="${notes}" onchange="updateNotes('${userID}', this.value)" /></td>
-</tr>`;
-        tbody.innerHTML += row;
-      }
-    }
-  });
+        for (let userID in allData) {
+            // Check if a row with the same userID already exists in the table
+            if (!document.querySelector(`#userTable tr[data-userid="${userID}"]`)) {
+                let userData = allData[userID];
+                // Check if serial number matches any pouch number. If it does, keep incrementing until it doesn't.
+                while (pouchNumbersSet.has(String(serialNumber))) {
+                    serialNumber++;
+                }
+                const pouchOrSerial = userData.pouch || serialNumber++; // Use pouch number if available, else use serial number
+                const total = userData.timeOut ? getTimeDifference(userData.timeIn, userData.timeOut) : '-';
+                const notes = userData.notes || '';
+                const row = `<tr data-userid="${userID}">
+                    <td>${pouchOrSerial}</td>
+                    <td>${userID}</td>
+                    <td><input class="center-align-input" value="${userData.timeIn}" onchange="updateTimeIn('${userID}', this.value)" /></td>
+                    <td><input class="center-align-input" value="${userData.timeOut}" onchange="updateTimeOut('${userID}', this.value)" /></td>
+                    <td>${total}</td>
+                    <td><button onclick="deleteUserData('${userID}')">Delete</button></td>
+                    <td><input class="center-align-input" value="${notes}" onchange="updateNotes('${userID}', this.value)" /></td>
+                </tr>`;
+                tbody.innerHTML += row;
+            }
+        }
+    });
 }
- 
+
 
 
     document.getElementById('userIDInput').addEventListener('keyup', function(event) {
@@ -436,11 +497,105 @@ const row = `<tr data-userid="${userID}">
         recordTime();
       }
     });
+const customSerials = {};
 
+function recordCustomSerial() {
+    const serialNumber = document.getElementById('customSerialInput').value;
+    const userID = document.getElementById('customUserIDInput').value;
+
+    // Check if user exists with the given userID
+    firebase.database().ref('customSerial/' + userID).once('value').then((snapshot) => {
+        let userData = snapshot.val();
+        if (userData) {
+            displayMessage(`User ${userID} already added with a serial number.`, 'error', 'customSerial');
+            return;
+        }
+
+        // Check if the custom serial number already exists
+        firebase.database().ref('customSerial/').orderByChild('customSerial').equalTo(serialNumber).once('value').then((snapshot) => {
+            if (snapshot.val()) {
+                displayMessage(`Serial Number ${serialNumber} already exists.`, 'error', 'customSerial');
+                return;
+            }
+
+            // If both checks pass, then add the new data
+            userData = {
+                customSerial: serialNumber,
+                notes: ''
+            };
+            firebase.database().ref('customSerial/' + userID).set(userData);
+            displayMessage(`User ${userID} with Serial Number ${serialNumber} added.`, 'success', 'customSerial');
+            
+            renderCustomSerialTable();
+            document.getElementById('customUserIDInput').value = '';
+            document.getElementById('customSerialInput').value = '';
+            refocusInput('customSerial');
+        });
+    });
+}
+
+
+function renderCustomSerialTable() {
+    const tbody = document.getElementById('customSerialTable');
+    tbody.innerHTML = '';
+    
+    firebase.database().ref('customSerial/').once('value').then((snapshot) => {
+        let allData = snapshot.val();
+
+        for (let userID in allData) {
+            let userData = allData[userID];
+            const notes = userData.notes || '';
+            const row = `<tr>
+                <td>${userData.customSerial}</td>
+                <td>${userID}</td>
+                <td><button onclick="deleteCustomUserData('${userID}')">Delete</button></td>
+                <td><input class="center-align-input" value="${notes}" onchange="updateCustomNotes('${userID}', this.value)" /></td>
+            </tr>`;
+
+            tbody.innerHTML += row;
+        }
+    });
+}
+
+function deleteCustomUserData(userID) {
+    firebase.database().ref('customSerial/' + userID).remove().then(() => {
+        renderCustomSerialTable();
+    }).catch((error) => {
+        console.error('Error deleting custom serial data:', error);
+    });
+}
+
+function updateCustomNotes(userID, value) {
+    firebase.database().ref('customSerial/' + userID).update({notes: value});
+}
+
+document.getElementById('customUserIDInput').addEventListener('keyup', function(event) {
+    if (event.keyCode === 13) {
+        recordCustomSerial();
+    }
+});
+
+function exportCustomSerialToExcel() {
+    firebase.database().ref('customSerial/').once('value').then((snapshot) => {
+        let allData = snapshot.val();
+
+        const ws_data = [['CUSTOM SERIAL', 'USERIDS', 'NOTES']];
+        for (let userID in allData) {
+            const notes = allData[userID].notes || '';
+            ws_data.push([allData[userID].customSerial, userID, notes]);
+        }
+
+        const ws = XLSX.utils.aoa_to_sheet(ws_data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Custom_Serial_Data");
+        XLSX.writeFile(wb, "custom_serial_data.xlsx");
+    });
+}
 window.onload = function() {
-  refocusInput('break');
-  renderTable();
-  renderAttendanceTable();
+    refocusInput('break');
+    renderTable();
+    renderAttendanceTable();
+    renderCustomSerialTable();  // Load the custom serial table on page load
 }
   </script>
   <script>
