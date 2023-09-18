@@ -263,16 +263,17 @@ firebase.database().ref('customSerial/').once('value').then((snapshot) => {
 
 function recordTime() {
   const userID = document.getElementById('userIDInput').value;
-  
+
   // First check the Pouch Database for the userID
   firebase.database().ref('customSerial/' + userID).once('value').then((snapshot) => {
     let pouchData = snapshot.val();
     let pouchNumber = pouchData ? pouchData.customSerial : null;
 
     if (pouchNumber) {
-      // Check if pouch number is already in use in Break Tracker
+      // Check if pouch number is already in use in Break Tracker for a DIFFERENT userID
       firebase.database().ref('break/').orderByChild('pouch').equalTo(pouchNumber).once('value').then((snapshot) => {
-        if (snapshot.val()) {
+        let existingData = snapshot.val();
+        if (existingData && !existingData[userID]) {
           displayMessage(`Pouch Number ${pouchNumber} is already in use.`, 'error');
           return;
         }
@@ -283,6 +284,7 @@ function recordTime() {
     }
   });
 }
+
 
 function processUserBreak(userID, pouchNumber) {
   const now = new Date();
