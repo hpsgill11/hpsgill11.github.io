@@ -239,14 +239,20 @@ firebase.database().ref('customSerial/').once('value').then((snapshot) => {
     }
 });
 
+function checkPassword() {
+  const password = prompt("Enter the password to access the Pouch Database:");
+  if (password === "sam") {
+    return true;
+  } else {
+    alert("Incorrect password!");
+    return false;
+  }
+}
     function timeToMinutes(time) {
       const [hours, minutes] = time.split(':').map(Number);
       return hours * 60 + minutes;
     }
-    function switchView(view) {
-      document.getElementById('break').style.display = view === 'break' ? 'block' : 'none';
-      document.getElementById('attendance').style.display = view === 'attendance' ? 'block' : 'none';
-    }
+
     function minutesToTime(minutes) {
       const hours = Math.floor(minutes / 60);
       const mins = minutes % 60;
@@ -462,12 +468,14 @@ function scrollToBottom(tableId) {
 }
 
 function switchView(view) {
-    document.getElementById('break').style.display = view === 'break' ? 'block' : 'none';
-    document.getElementById('attendance').style.display = view === 'attendance' ? 'block' : 'none';
-    document.getElementById('customSerial').style.display = view === 'customSerial' ? 'block' : 'none';
-    
-    // Add this line to refocus the input based on the current view.
-    refocusInput(view);
+  if (view === 'customSerial' && !checkPassword()) {
+    return;  // If password is incorrect, don't show the Pouch Database tab.
+  }
+  document.getElementById('break').style.display = view === 'break' ? 'block' : 'none';
+  document.getElementById('attendance').style.display = view === 'attendance' ? 'block' : 'none';
+  document.getElementById('customSerial').style.display = view === 'customSerial' ? 'block' : 'none';
+  
+  refocusInput(view);
 }
 function renderTable() {
     const tbody = document.getElementById('userTable');
