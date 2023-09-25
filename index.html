@@ -128,6 +128,19 @@ table {
 .center-align-input {
   text-align: center;
 }
+@keyframes fadeHighlight {
+    from {
+        background-color: yellow;
+    }
+    to {
+        background-color: transparent;
+    }
+}
+
+.highlight {
+    animation: fadeHighlight 3s forwards;
+}
+
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"> </script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -156,7 +169,7 @@ table {
 
   <button onclick="switchView('break')" style="margin-bottom: 20px;">Break Time Tracker</button>
 <button onclick="switchView('attendance')" style="margin-bottom: 20px;">Attendance Tracker</button>
-<button onclick="switchView('customSerial')" style="margin-bottom: 20px;">Pouch Database</button>
+<button id="clearDatabaseButton" onclick="clearDatabaseForActiveTab()" style="margin-top: 1px;">Clear Active Tab Database</button>
 
 
   <div id="break" style="display:block;">
@@ -202,131 +215,142 @@ table {
       <tbody id="attendanceUserTable"></tbody>
     </table>
   </div>
-<!-- Custom Serial Number Tracker -->
-<div id="customSerial" style="display:none;">
-    <h2>Pouch Database - Morning Shift</h2>
-    <label for="customSerialInput">Enter Pouch Number:</label>
-    <input id="customSerialInput" type="text">
-    <label for="customUserIDInput">Scan USERID:</label>
-    <input id="customUserIDInput" type="text">
-    <button onclick="recordCustomSerial()">Scan</button>
-    <div id="customSuccessMessage"></div>
-    <div id="customErrorMessage"></div>
-    <table>
-        <thead>
-            <tr>
-                <th>POUCH #</th>
-                <th>USERIDS</th>
-                <th>ACTIONS</th>
-                <th>NOTES</th>
-            </tr>
-        </thead>
-        <tbody id="customSerialTable"></tbody>
-    </table>
-</div>
+
 <button onclick="exportBreakToExcel()" style="position: absolute; top: 20px; right: 20px;">Export Break Data to Excel</button>
 <button onclick="exportAttendanceToExcel()" style="position: absolute; top: 60px; right: 20px;">Export Attendance Data to Excel</button>
-<button onclick="exportCustomSerialToExcel()" style="position: absolute; top: 100px; right: 20px;">Export Pouch Data to Excel</button>
+
+
   <script>
     const users = {};
     const attendanceUsers = {};
-let pouchNumbersSet = new Set();
+function clearDatabaseForActiveTab() {
+    const isBreakTabActive = document.getElementById('break').style.display !== 'none';
 
-firebase.database().ref('customSerial/').once('value').then((snapshot) => {
-    let allData = snapshot.val();
-    for (let userID in allData) {
-        pouchNumbersSet.add(allData[userID].customSerial);
+    if (isBreakTabActive) {
+        if (confirm("Are you sure you want to clear the entire break database? This action is irreversible.")) {
+            firebase.database().ref('break/').remove().then(() => {
+                renderTable(); // Re-render the break table after clearance
+                displayMessage('Break database cleared successfully.', 'success');
+            }).catch((error) => {
+                console.error('Error clearing break database:', error);
+                displayMessage('Error clearing break database. Please try again.', 'error');
+            }).finally(() => {
+                refocusInput('break');  // Refocus on the break input field
+            });
+        } else {
+            refocusInput('break');  // Refocus on the break input field if user cancels the dialog
+        }
+    } else {
+        if (confirm("Are you sure you want to clear the entire attendance database? This action is irreversible.")) {
+            firebase.database().ref('attendance/').remove().then(() => {
+                renderAttendanceTable(); // Re-render the attendance table after clearance
+                displayMessage('Attendance database cleared successfully.', 'success', 'attendance');
+            }).catch((error) => {
+                console.error('Error clearing attendance database:', error);
+                displayMessage('Error clearing attendance database. Please try again.', 'error', 'attendance');
+            }).finally(() => {
+                refocusInput('attendance');  // Refocus on the attendance input field
+            });
+        } else {
+            refocusInput('attendance');  // Refocus on the attendance input field if user cancels the dialog
+        }
     }
-});
-
-function checkPassword() {
-  const password = prompt("Enter the password to access the Pouch Database:");
-  if (password === "sam") {
-    return true;
-  } else {
-    alert("Incorrect password!");
-    return false;
-  }
 }
+
+
     function timeToMinutes(time) {
       const [hours, minutes] = time.split(':').map(Number);
       return hours * 60 + minutes;
     }
-
     function minutesToTime(minutes) {
       const hours = Math.floor(minutes / 60);
       const mins = minutes % 60;
       return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
     }
 
-function getTimeDifference(start, end) {
-    const startTime = timeToMinutes(start);
-    const endTime = timeToMinutes(end);
-    const difference = endTime - startTime;
-    
-    if (difference < 0) return { time: 'Invalid', isLate: false };
-
-    const isLate = difference > 15;
-    const timeText = `${minutesToTime(difference)}${isLate ? " (Late)" : ""}`;
-    return { time: timeText, isLate: isLate };
+    function getTimeDifference(start, end) {
+      const startTime = timeToMinutes(start);
+      const endTime = timeToMinutes(end);
+      const difference = endTime - startTime;
+      if (difference < 0) return 'Invalid';
+      return minutesToTime(difference);
+    }
+	
+function scrollToLastRow() {
+    const tbody = document.getElementById('userTable');
+    const lastRow = tbody.lastElementChild;
+    if (lastRow) {
+        lastRow.scrollIntoView();
+    }
 }
 
+function scrollToLastAttendanceRow() {
+    const tbody = document.getElementById('attendanceUserTable');
+    const lastRow = tbody.lastElementChild;
+    if (lastRow) {
+        lastRow.scrollIntoView();
+    }
+}
+function highlightRowByUserID(userID) {
+    const row = document.querySelector(`#userTable tr[data-userid="${userID}"]`);
+    if (row) {
+        row.classList.add('highlight');
+        setTimeout(() => {
+            row.classList.remove('highlight');
+        }, 4000); // The highlight will fade out after 4 seconds
+    }
+}
 
 function recordTime() {
-  const userID = document.getElementById('userIDInput').value;
+    const userID = document.getElementById('userIDInput').value.trim();  // Trim any leading or trailing spaces
 
-  // First check the Pouch Database for the userID
-  firebase.database().ref('customSerial/' + userID).once('value').then((snapshot) => {
-    let pouchData = snapshot.val();
-    let pouchNumber = pouchData ? pouchData.customSerial : null;
+    // Check if the userID is empty
+    if (!userID) {
+        displayMessage('Please enter a valid USERID.', 'error');
+        return;  // Exit the function early
+    }
 
-    if (pouchNumber) {
-      // Check if pouch number is already in use in Break Tracker for a DIFFERENT userID
-      firebase.database().ref('break/').orderByChild('pouch').equalTo(pouchNumber).once('value').then((snapshot) => {
-        let existingData = snapshot.val();
-        if (existingData && !existingData[userID]) {
-          displayMessage(`Pouch Number ${pouchNumber} is already in use.`, 'error');
-          return;
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const currentTime = `${hours}:${minutes}`;
+
+    // Retrieve all break data from Firebase
+    firebase.database().ref('break/').once('value').then((snapshot) => {
+        let allData = snapshot.val() || {};
+
+        // Determine the next available pouchNumber
+        let allPouchNumbers = Object.values(allData).map(data => data.pouchNumber).sort((a, b) => a - b);
+        let nextPouchNumber = 1;
+        for(let num of allPouchNumbers) {
+            if(num !== nextPouchNumber) break; // Found a gap in the sequence
+            nextPouchNumber++;
         }
-        processUserBreak(userID, pouchNumber);
-      });
-    } else {
-      processUserBreak(userID, pouchNumber);
-    }
-  });
-}
 
+        let userData = allData[userID];
+        if (!userData) {
+            userData = {
+                pouchNumber: nextPouchNumber,
+                timeIn: currentTime,
+                timeOut: '',
+                notes: ''
+            };
+            firebase.database().ref('break/' + userID).set(userData);
+            displayMessage(`User ${userID} checked out at ${currentTime}.`, 'success');
+        } else if (!userData.timeOut) {
+            userData.timeOut = currentTime;
+            firebase.database().ref('break/' + userID).update(userData);
+            displayMessage(`User ${userID} checked in at ${currentTime}.`, 'success');
+        } else {
+            displayMessage('User already scanned in and out for the day.', 'error');
+        }
 
-function processUserBreak(userID, pouchNumber) {
-  const now = new Date();
-  const hours = String(now.getHours()).padStart(2, '0');
-  const minutes = String(now.getMinutes()).padStart(2, '0');
-  const currentTime = `${hours}:${minutes}`;
-  
-  // Check if user exists in Break Tracker
-  firebase.database().ref('break/' + userID).once('value').then((snapshot) => {
-    let userData = snapshot.val();
-    if (!userData) {
-      userData = {
-        pouch: pouchNumber || '', // Store the pouch number if available, else keep it empty
-        timeIn: currentTime,
-        timeOut: '',
-        notes: ''
-      };
-      firebase.database().ref('break/' + userID).set(userData);
-      displayMessage(`User ${userID} checked out at ${currentTime}.`, 'success');
-    } else if (!userData.timeOut) {
-      userData.timeOut = currentTime;
-      firebase.database().ref('break/' + userID).update(userData);
-      displayMessage(`User ${userID} checked in at ${currentTime}.`, 'success');
-    } else {
-      displayMessage('User already scanned in and out for the day.', 'error');
-    }
+        // Render the table with the updated userID
+        renderTable(userID);
 
-    renderTable();
-    document.getElementById('userIDInput').value = '';
-    refocusInput();
-  });
+        document.getElementById('userIDInput').value = '';
+        refocusInput();
+    });
 }
 
 
@@ -334,6 +358,7 @@ function processUserBreak(userID, pouchNumber) {
 function deleteUserData(userID) {
     firebase.database().ref('break/' + userID).remove().then(() => {
         renderTable();
+		        refocusInput('break');  // Add this line
     }).catch((error) => {
         console.error('Error deleting user data:', error);
     });
@@ -385,7 +410,14 @@ function updateNotes(userID, value) {
       }, 5000);
     }
 function recordAttendanceTime() {
-    const userID = document.getElementById('attendanceUserIDInput').value;
+    const userID = document.getElementById('attendanceUserIDInput').value.trim();  // Trim any leading or trailing spaces
+
+    // Check if the userID is empty
+    if (!userID) {
+        displayMessage('Please enter a valid USERID.', 'error', 'attendance');
+        return;  // Exit the function early
+    }
+
     const now = new Date();
     const hours = String(now.getHours()).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
@@ -404,9 +436,9 @@ function recordAttendanceTime() {
             displayMessage('User already checked in for the day.', 'error', 'attendance');
         }
 
-        renderAttendanceTable();
-        document.getElementById('attendanceUserIDInput').value = '';
-        refocusInput('attendance');
+    renderAttendanceTable(userID);  // Pass the updated userID to the renderAttendanceTable function
+    document.getElementById('attendanceUserIDInput').value = '';
+    refocusInput('attendance');
     });
 }
 
@@ -414,6 +446,7 @@ function recordAttendanceTime() {
 function deleteAttendanceUserData(userID) {
     firebase.database().ref('attendance/' + userID).remove().then(() => {
         renderAttendanceTable();
+		        refocusInput('attendance');  // Add this line
     }).catch((error) => {
         console.error('Error deleting attendance data:', error);
     });
@@ -424,31 +457,126 @@ function updateAttendanceNotes(userID, value) {
 }
 
 
-function renderAttendanceTable() {
+function renderAttendanceTable(updatedUserID = null) {
     const tbody = document.getElementById('attendanceUserTable');
-    tbody.innerHTML = '';
     
     firebase.database().ref('attendance/').once('value').then((snapshot) => {
-        let allData = snapshot.val();
-        let serialNumber = 1; // Initialize the serial number
+        let allData = snapshot.val() || {};
+        
+        let sortedData = Object.keys(allData).sort((a, b) => {
+            return timeToMinutes(allData[a].timeIn) - timeToMinutes(allData[b].timeIn);
+        });
 
-        for (let userID in allData) {
-            let userData = allData[userID];
+        for (let userID of sortedData) {
+            const userData = allData[userID];
+            const existingRow = document.querySelector(`#attendanceUserTable tr[data-userid="${userID}"]`);
+            
             const notes = userData.notes || '';
-const row = `<tr>
-    <td>${serialNumber++}</td>
-    <td>${userID}</td>
-    <td><input class="center-align-input" value="${userData.timeIn}" /></td>
-    <td><button onclick="deleteAttendanceUserData('${userID}')">Delete</button></td>
-    <td><input class="center-align-input" value="${notes}" onchange="updateAttendanceNotes('${userID}', this.value)" /></td>
-</tr>`;
+            const rowContent = `
+                <td>${userID}</td>
+                <td><input class="center-align-input" value="${userData.timeIn}" /></td>
+                <td><button onclick="deleteAttendanceUserData('${userID}')">Delete</button></td>
+                <td><input class="center-align-input" value="${notes}" onchange="updateAttendanceNotes('${userID}', this.value)" /></td>
+            `;
 
-            tbody.innerHTML += row;
-    // Add this line to scroll to the bottom:
-    scrollToBottom('attendanceUserTable');
+            if (existingRow) {
+                existingRow.innerHTML = rowContent;
+            } else {
+                const newRow = document.createElement('tr');
+                newRow.setAttribute('data-userid', userID);
+                newRow.innerHTML = rowContent;
+                tbody.appendChild(newRow);
+            }
+        }
+
+        // Remove rows that no longer exist in the database
+        const allRows = tbody.querySelectorAll('tr');
+        for (let row of allRows) {
+            const rowUserID = row.getAttribute('data-userid');
+            if (!allData[rowUserID]) {
+                tbody.removeChild(row);
+            }
+        }
+
+        if (updatedUserID) {
+            const updatedRow = document.querySelector(`#attendanceUserTable tr[data-userid="${updatedUserID}"]`);
+            if (updatedRow) {
+                updatedRow.scrollIntoView();
+                highlightAttendanceRowByUserID(updatedUserID);
+            }
         }
     });
 }
+function renderAttendanceTable(updatedUserID = null) {
+    const tbody = document.getElementById('attendanceUserTable');
+    
+    firebase.database().ref('attendance/').once('value').then((snapshot) => {
+        let allData = snapshot.val() || {};
+        
+        let sortedData = Object.keys(allData).sort((a, b) => {
+            return timeToMinutes(allData[a].timeIn) - timeToMinutes(allData[b].timeIn);
+        });
+
+        for (let userID of sortedData) {
+            const userData = allData[userID];
+            const existingRow = document.querySelector(`#attendanceUserTable tr[data-userid="${userID}"]`);
+            
+            const notes = userData.notes || '';
+            const rowContent = `
+                <td></td> <!-- This will be populated with the serial number later -->
+                <td>${userID}</td>
+                <td><input class="center-align-input" value="${userData.timeIn}" /></td>
+                <td><button onclick="deleteAttendanceUserData('${userID}')">Delete</button></td>
+                <td><input class="center-align-input" value="${notes}" onchange="updateAttendanceNotes('${userID}', this.value)" /></td>
+            `;
+
+            if (existingRow) {
+                existingRow.innerHTML = rowContent;
+            } else {
+                const newRow = document.createElement('tr');
+                newRow.setAttribute('data-userid', userID);
+                newRow.innerHTML = rowContent;
+                tbody.appendChild(newRow);
+            }
+        }
+
+        // Remove rows that no longer exist in the database
+        const allRows = tbody.querySelectorAll('tr');
+        for (let row of allRows) {
+            const rowUserID = row.getAttribute('data-userid');
+            if (!allData[rowUserID]) {
+                tbody.removeChild(row);
+            }
+        }
+
+        if (updatedUserID) {
+            const updatedRow = document.querySelector(`#attendanceUserTable tr[data-userid="${updatedUserID}"]`);
+            if (updatedRow) {
+                updatedRow.scrollIntoView();
+                highlightAttendanceRowByUserID(updatedUserID);
+            }
+        }
+
+        // Correct the serial numbers after all other updates
+        const updatedRows = tbody.querySelectorAll('tr');
+        updatedRows.forEach((row, index) => {
+            const serialCell = row.querySelector('td:first-child');
+            serialCell.textContent = index + 1;  // Update the serial number
+        });
+    });
+}
+
+function highlightAttendanceRowByUserID(userID) {
+    const row = document.querySelector(`#attendanceUserTable tr[data-userid="${userID}"]`);
+    if (row) {
+        row.classList.add('highlight');
+        setTimeout(() => {
+            row.classList.remove('highlight');
+        }, 4000); // The highlight will fade out after 4 seconds
+    }
+}
+
+
 
     document.getElementById('userIDInput').addEventListener('keyup', function(event) {
       if (event.keyCode === 13) {
@@ -462,58 +590,92 @@ const row = `<tr>
         recordAttendanceTime();
       }
     });
-function scrollToBottom(tableId) {
-    const tbody = document.getElementById(tableId);
-    tbody.scrollTop = tbody.scrollHeight;
-}
-
 function switchView(view) {
-  if (view === 'customSerial' && !checkPassword()) {
-    return;  // If password is incorrect, don't show the Pouch Database tab.
-  }
-  document.getElementById('break').style.display = view === 'break' ? 'block' : 'none';
-  document.getElementById('attendance').style.display = view === 'attendance' ? 'block' : 'none';
-  document.getElementById('customSerial').style.display = view === 'customSerial' ? 'block' : 'none';
-  
-  refocusInput(view);
+    document.getElementById('break').style.display = view === 'break' ? 'block' : 'none';
+    document.getElementById('attendance').style.display = view === 'attendance' ? 'block' : 'none';
+    
+    const button = document.getElementById('clearDatabaseButton');
+    if (view === 'break') {
+        button.innerText = 'Clear Break Database';
+        refocusInput('break');  // Refocus on the break input field
+    } else {
+        button.innerText = 'Clear Attendance Database';
+        refocusInput('attendance');  // Refocus on the attendance input field
+    }
 }
-function renderTable() {
+
+
+function insertRowInOrder(tbody, newRow, pouchNumber) {
+    const allRows = tbody.querySelectorAll('tr');
+    for (let i = 0; i < allRows.length; i++) {
+        const currentRow = allRows[i];
+        const currentPouchNumber = parseInt(currentRow.querySelector('td:first-child').textContent, 10);
+        if (pouchNumber < currentPouchNumber) {
+            tbody.insertBefore(newRow, currentRow);
+            return;
+        }
+    }
+    tbody.appendChild(newRow);  // If we haven't returned by now, append to the end
+}
+
+function renderTable(updatedUserID = null) {
     const tbody = document.getElementById('userTable');
-    tbody.innerHTML = '';
-
+    
     firebase.database().ref('break/').once('value').then((snapshot) => {
-        let allData = snapshot.val();
-        let serialNumber = 1; // Initialize the serial number
+        let allData = snapshot.val() || {};
+        let sortedData = Object.keys(allData).sort((a, b) => {
+            return allData[a].pouchNumber - allData[b].pouchNumber;
+        });
 
-        for (let userID in allData) {
-            // Check if a row with the same userID already exists in the table
-            if (!document.querySelector(`#userTable tr[data-userid="${userID}"]`)) {
-                let userData = allData[userID];
-                // Check if serial number matches any pouch number. If it does, keep incrementing until it doesn't.
-                while (pouchNumbersSet.has(String(serialNumber))) {
-                    serialNumber++;
-                }
-                const pouchOrSerial = userData.pouch || serialNumber++; // Use pouch number if available, else use serial number
-const totalData = userData.timeOut ? getTimeDifference(userData.timeIn, userData.timeOut) : { time: '-', isLate: false };
-                const notes = userData.notes || '';
-                const row = `<tr data-userid="${userID}">
-                    <td>${pouchOrSerial}</td>
-                    <td>${userID}</td>
-                    <td><input class="center-align-input" value="${userData.timeIn}" onchange="updateTimeIn('${userID}', this.value)" /></td>
-                    <td><input class="center-align-input" value="${userData.timeOut}" onchange="updateTimeOut('${userID}', this.value)" /></td>
-<td${totalData.isLate ? ' class="highlight"' : ''}>${totalData.time}</td>
+        for (let userID of sortedData) {
+            const userData = allData[userID];
+            const existingRow = document.querySelector(`#userTable tr[data-userid="${userID}"]`);
 
-                    <td><button onclick="deleteUserData('${userID}')">Delete</button></td>
-                    <td><input class="center-align-input" value="${notes}" onchange="updateNotes('${userID}', this.value)" /></td>
-                </tr>`;
-                tbody.innerHTML += row;
-    // Add this line to scroll to the bottom:
-    scrollToBottom('userTable');
+            const total = userData.timeOut ? getTimeDifference(userData.timeIn, userData.timeOut) : '-';
+            const notes = userData.notes || '';
+            const pouchNumber = userData.pouchNumber;
+            const rowContent = `
+                <td>${pouchNumber}</td>
+                <td>${userID}</td>
+                <td><input class="center-align-input" value="${userData.timeIn}" onchange="updateTimeIn('${userID}', this.value)" /></td>
+                <td><input class="center-align-input" value="${userData.timeOut}" onchange="updateTimeOut('${userID}', this.value)" /></td>
+                <td>${total}</td>
+                <td><button onclick="deleteUserData('${userID}')">Delete</button></td>
+                <td><input class="center-align-input" value="${notes}" onchange="updateNotes('${userID}', this.value)" /></td>
+            `;
+
+            if (existingRow) {
+                existingRow.innerHTML = rowContent;
+            } else {
+                const newRow = document.createElement('tr');
+                newRow.setAttribute('data-userid', userID);
+                newRow.innerHTML = rowContent;
+                insertRowInOrder(tbody, newRow, pouchNumber);
+            }
+        }
+
+        // Remove rows that no longer exist in the database
+        const allRows = tbody.querySelectorAll('tr');
+        for (let row of allRows) {
+            const rowUserID = row.getAttribute('data-userid');
+            if (!allData[rowUserID]) {
+                tbody.removeChild(row);
+            }
+        }
+
+        if (updatedUserID) {
+            const updatedRow = document.querySelector(`#userTable tr[data-userid="${updatedUserID}"]`);
+            if (updatedRow) {
+                updatedRow.scrollIntoView();
+                highlightRowByUserID(updatedUserID);
             }
         }
     });
 }
 
+
+
+ 
 
 
     document.getElementById('userIDInput').addEventListener('keyup', function(event) {
@@ -521,107 +683,11 @@ const totalData = userData.timeOut ? getTimeDifference(userData.timeIn, userData
         recordTime();
       }
     });
-const customSerials = {};
 
-function recordCustomSerial() {
-    const serialNumber = document.getElementById('customSerialInput').value;
-    const userID = document.getElementById('customUserIDInput').value;
-
-    // Check if user exists with the given userID
-    firebase.database().ref('customSerial/' + userID).once('value').then((snapshot) => {
-        let userData = snapshot.val();
-        if (userData) {
-            displayMessage(`User ${userID} already added with a serial number.`, 'error', 'customSerial');
-            return;
-        }
-
-        // Check if the custom serial number already exists
-        firebase.database().ref('customSerial/').orderByChild('customSerial').equalTo(serialNumber).once('value').then((snapshot) => {
-            if (snapshot.val()) {
-                displayMessage(`Serial Number ${serialNumber} already exists.`, 'error', 'customSerial');
-                return;
-            }
-
-            // If both checks pass, then add the new data
-            userData = {
-                customSerial: serialNumber,
-                notes: ''
-            };
-            firebase.database().ref('customSerial/' + userID).set(userData);
-            displayMessage(`User ${userID} with Serial Number ${serialNumber} added.`, 'success', 'customSerial');
-            
-            renderCustomSerialTable();
-            document.getElementById('customUserIDInput').value = '';
-            document.getElementById('customSerialInput').value = '';
-            refocusInput('customSerial');
-        });
-    });
-}
-
-
-function renderCustomSerialTable() {
-    const tbody = document.getElementById('customSerialTable');
-    tbody.innerHTML = '';
-    
-    firebase.database().ref('customSerial/').once('value').then((snapshot) => {
-        let allData = snapshot.val();
-
-        for (let userID in allData) {
-            let userData = allData[userID];
-            const notes = userData.notes || '';
-            const row = `<tr>
-                <td>${userData.customSerial}</td>
-                <td>${userID}</td>
-                <td><button onclick="deleteCustomUserData('${userID}')">Delete</button></td>
-                <td><input class="center-align-input" value="${notes}" onchange="updateCustomNotes('${userID}', this.value)" /></td>
-            </tr>`;
-
-            tbody.innerHTML += row;
-    // Add this line to scroll to the bottom:
-    scrollToBottom('customSerialTable');
-        }
-    });
-}
-
-function deleteCustomUserData(userID) {
-    firebase.database().ref('customSerial/' + userID).remove().then(() => {
-        renderCustomSerialTable();
-    }).catch((error) => {
-        console.error('Error deleting custom serial data:', error);
-    });
-}
-
-function updateCustomNotes(userID, value) {
-    firebase.database().ref('customSerial/' + userID).update({notes: value});
-}
-
-document.getElementById('customUserIDInput').addEventListener('keyup', function(event) {
-    if (event.keyCode === 13) {
-        recordCustomSerial();
-    }
-});
-
-function exportCustomSerialToExcel() {
-    firebase.database().ref('customSerial/').once('value').then((snapshot) => {
-        let allData = snapshot.val();
-
-        const ws_data = [['CUSTOM SERIAL', 'USERIDS', 'NOTES']];
-        for (let userID in allData) {
-            const notes = allData[userID].notes || '';
-            ws_data.push([allData[userID].customSerial, userID, notes]);
-        }
-
-        const ws = XLSX.utils.aoa_to_sheet(ws_data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Custom_Serial_Data");
-        XLSX.writeFile(wb, "custom_serial_data.xlsx");
-    });
-}
 window.onload = function() {
-    refocusInput('break');
-    renderTable();
-    renderAttendanceTable();
-    renderCustomSerialTable();  // Load the custom serial table on page load
+  refocusInput('break');
+  renderTable();
+  renderAttendanceTable();
 }
   </script>
   <script>
@@ -633,11 +699,9 @@ function exportBreakToExcel() {
         let serialNumber = 1; // Initialize the serial number
 
         for (let userID in allData) {
-            const totalData = allData[userID].timeOut 
-                ? getTimeDifference(allData[userID].timeIn, allData[userID].timeOut).time 
-                : '-';
+            const total = allData[userID].timeOut ? getTimeDifference(allData[userID].timeIn, allData[userID].timeOut) : '-';
             const notes = allData[userID].notes || '';
-            ws_data.push([serialNumber++, userID, allData[userID].timeIn, allData[userID].timeOut, totalData, notes]);
+            ws_data.push([serialNumber++, userID, allData[userID].timeIn, allData[userID].timeOut, total, notes]);
         }
 
         const ws = XLSX.utils.aoa_to_sheet(ws_data);
@@ -646,7 +710,6 @@ function exportBreakToExcel() {
         XLSX.writeFile(wb, "break_time_data.xlsx");
     });
 }
-
 
 function exportAttendanceToExcel() {
     firebase.database().ref('attendance/').once('value').then((snapshot) => {
