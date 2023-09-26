@@ -140,6 +140,13 @@ table {
 .highlight {
     animation: fadeHighlight 3s forwards;
 }
+.highlight-orange {
+    color: orange;
+}
+
+.highlight-red {
+    color: red;
+}
 
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"> </script>
@@ -269,12 +276,14 @@ function clearDatabaseForActiveTab() {
     }
 
     function getTimeDifference(start, end) {
-      const startTime = timeToMinutes(start);
-      const endTime = timeToMinutes(end);
-      const difference = endTime - startTime;
-      if (difference < 0) return 'Invalid';
-      return minutesToTime(difference);
-    }
+    if (!start || !end) return -1; // Return -1 when either start or end is empty
+
+    const startTime = timeToMinutes(start);
+    const endTime = timeToMinutes(end);
+    const difference = endTime - startTime;
+    return difference;
+}
+
 	
 function scrollToLastRow() {
     const tbody = document.getElementById('userTable');
@@ -631,7 +640,21 @@ function renderTable(updatedUserID = null) {
             const userData = allData[userID];
             const existingRow = document.querySelector(`#userTable tr[data-userid="${userID}"]`);
 
-            const total = userData.timeOut ? getTimeDifference(userData.timeIn, userData.timeOut) : '-';
+            const totalMinutes = getTimeDifference(userData.timeIn, userData.timeOut);
+            let colorClass = '';
+            let total = '';
+            
+            if (totalMinutes === -1) {
+                total = '-';
+            } else {
+                total = minutesToTime(totalMinutes);
+                if (totalMinutes > 30) {
+                    colorClass = 'highlight-red';
+                } else if (totalMinutes > 15) {
+                    colorClass = 'highlight-orange';
+                }
+            }
+            
             const notes = userData.notes || '';
             const pouchNumber = userData.pouchNumber;
             const rowContent = `
@@ -639,7 +662,7 @@ function renderTable(updatedUserID = null) {
                 <td>${userID}</td>
                 <td><input class="center-align-input" value="${userData.timeIn}" onchange="updateTimeIn('${userID}', this.value)" /></td>
                 <td><input class="center-align-input" value="${userData.timeOut}" onchange="updateTimeOut('${userID}', this.value)" /></td>
-                <td>${total}</td>
+                <td class="${colorClass}">${total}</td>
                 <td><button onclick="deleteUserData('${userID}')">Delete</button></td>
                 <td><input class="center-align-input" value="${notes}" onchange="updateNotes('${userID}', this.value)" /></td>
             `;
@@ -672,9 +695,6 @@ function renderTable(updatedUserID = null) {
         }
     });
 }
-
-
-
  
 
 
