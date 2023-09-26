@@ -144,11 +144,66 @@ table {
 .highlight-red {
     color: red;
 }
+        /* New styles for the login page */
+#loginPage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f4f5f7;
+        }
+
+        #loginForm {
+            width: 300px;
+            padding: 50px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        #loginForm h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        #loginForm input[type="email"],
+        #loginForm input[type="password"] {
+            width: 100%;
+            margin-bottom: 15px;
+            border: 1px solid #dbdbdb;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        #loginForm button {
+            width: 100%;
+            border-radius: 5px;
+            background-color: #3897f0;
+            color: #ffffff;
+            font-weight: bold;
+            padding: 10px;
+            border: none;
+            cursor: pointer;
+        }
+
+        #loginForm button:hover {
+            background-color: #357abD;
+        }
+        #loginPage, #mainContent {
+    display: none;
+}
+#loginError {
+    margin-top: 15px;
+    text-align: center;
+}
 
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"> </script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>  
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyDCXrQGBQcueZQmI3mUstKA0dntmttpZT0",
@@ -163,9 +218,28 @@ table {
 
   // Initialize Firebase
   firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+
 </script>
 </head>
 <body>
+    <div id="loginPage" style="display: block;">
+        <!-- App Name -->
+        <h2>Break Tracker and Attendance Tracker</h2>
+        
+        <!-- Login Form -->
+        <div id="loginForm">
+            <h2>Login</h2>
+            <label for="email">Email:</label>
+            <input type="email" id="email">
+            <label for="password">Password:</label>
+            <input type="password" id="password">
+            <button onclick="login()">Login</button>
+            <div id="loginError" style="color: red;"></div>
+        </div>
+    </div>
+    
+    <div id="mainContent" style="display: none;">
   <div id="successMessage"></div>
   <div id="errorMessage"></div>
   <div id="attendanceSuccessMessage"></div>
@@ -174,7 +248,7 @@ table {
   <button onclick="switchView('break')" style="margin-bottom: 20px;">Break Time Tracker</button>
 <button onclick="switchView('attendance')" style="margin-bottom: 20px;">Attendance Tracker</button>
 <button id="clearDatabaseButton" onclick="clearDatabaseForActiveTab()" style="margin-top: 1px;">Clear Break Database</button>
-
+<button onclick="logout()">Logout</button>
 
   <div id="break" style="display:block;">
     <h2>Break Time Tracker - Morning Shift</h2>
@@ -222,11 +296,61 @@ table {
 
 <button onclick="exportBreakToExcel()" style="position: absolute; top: 20px; right: 20px;">Export Break Data to Excel</button>
 <button onclick="exportAttendanceToExcel()" style="position: absolute; top: 60px; right: 20px;">Export Attendance Data to Excel</button>
-
-
+</div>
   <script>
     const users = {};
     const attendanceUsers = {};
+    auth.onAuthStateChanged(function(user) {
+    if (user) {
+        // User is signed in.
+        document.getElementById('mainContent').style.display = 'block';
+        document.getElementById('loginPage').style.display = 'none';
+        refocusInput('break');  // <-- Move this line here
+    } else {
+        // No user is signed in.
+        document.getElementById('loginPage').style.display = 'block';
+        document.getElementById('mainContent').style.display = 'none';
+    }
+});
+
+auth.onAuthStateChanged(function(user) {
+    if (user) {
+        // User is signed in.
+        localStorage.setItem('authState', 'loggedIn');
+    } else {
+        // No user is signed in.
+        localStorage.setItem('authState', 'loggedOut');
+    }
+});
+
+
+
+
+function login() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    auth.signInWithEmailAndPassword(email, password).catch(function(error) {
+        // Try parsing the error message (assuming it's in JSON format)
+        try {
+            const parsedError = JSON.parse(error.message);
+            if (parsedError && parsedError.error && parsedError.error.message === "INVALID_LOGIN_CREDENTIALS") {
+                document.getElementById('loginError').innerText = "Wrong user ID and password.";
+            } else {
+                document.getElementById('loginError').innerText = error.message;  // Default error message
+            }
+        } catch (e) {
+            document.getElementById('loginError').innerText = error.message;  // If parsing fails, show the raw error
+        }
+    });
+}
+
+
+
+
+function logout() {
+    auth.signOut();
+}
+
 function clearDatabaseForActiveTab() {
     const isBreakTabActive = document.getElementById('break').style.display !== 'none';
 
@@ -700,12 +824,30 @@ function renderTable(updatedUserID = null) {
         recordTime();
       }
     });
+    document.getElementById('email').addEventListener('keyup', function(event) {
+            if (event.keyCode === 13) {
+                login();
+            }
+        });
 
+        document.getElementById('password').addEventListener('keyup', function(event) {
+            if (event.keyCode === 13) {
+                login();
+            }
+        });
 window.onload = function() {
-  refocusInput('break');
+    let authState = localStorage.getItem('authState');
+    if (authState === 'loggedIn') {
+        document.getElementById('mainContent').style.display = 'block';
+        document.getElementById('loginPage').style.display = 'none';
+    } else {
+        document.getElementById('loginPage').style.display = 'block';
+        document.getElementById('mainContent').style.display = 'none';
+    }
   renderTable();
   renderAttendanceTable();
 }
+
   </script>
   <script>
 function exportBreakToExcel() {
