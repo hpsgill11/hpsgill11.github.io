@@ -716,8 +716,8 @@ function exportBreakToExcel() {
 
         for (let userID in allData) {
             const userData = allData[userID];
-            const timeOut = userData.timeOut || "-";
-            const timeIn = userData.timeIn || "-";
+            const timeOut = userData.timeOut || "-";   // Keep Time Out as it is
+            const timeIn = userData.timeIn || "-";     // Keep Time In as it is
             let total;
 
             if (timeOut === "-" || timeIn === "-" || isNaN(getTimeDifference(timeIn, timeOut))) {
@@ -727,7 +727,7 @@ function exportBreakToExcel() {
             }
 
             const notes = userData.notes || "";
-            ws_data.push([userData.pouchNumber, userID, timeOut, timeIn, total, notes]);
+            ws_data.push([userData.pouchNumber, userID, timeIn, timeOut, total, notes]);   // Ensure Time Out comes before Time In
         }
 
         const ws = XLSX.utils.aoa_to_sheet(ws_data);
@@ -736,6 +736,7 @@ function exportBreakToExcel() {
         XLSX.writeFile(wb, "break_time_data.xlsx");
     });
 }
+
 
 
 function exportAttendanceToExcel() {
