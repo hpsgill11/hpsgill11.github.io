@@ -716,12 +716,21 @@ function exportBreakToExcel() {
         let allData = snapshot.val();
 
         const ws_data = [['POUCH NO.', 'USERIDS', 'TIME OUT', 'TIME IN', 'TOTAL', 'NOTES']];
-        let serialNumber = 1; // Initialize the serial number
 
         for (let userID in allData) {
-            const total = allData[userID].timeOut ? getTimeDifference(allData[userID].timeIn, allData[userID].timeOut) : '-';
-            const notes = allData[userID].notes || '';
-            ws_data.push([serialNumber++, userID, allData[userID].timeIn, allData[userID].timeOut, total, notes]);
+            const userData = allData[userID];
+            const timeOut = userData.timeOut || "-";
+            const timeIn = userData.timeIn || "-";
+            let total;
+
+            if (timeOut === "-" || timeIn === "-" || isNaN(getTimeDifference(timeIn, timeOut))) {
+                total = "-";
+            } else {
+                total = minutesToTime(getTimeDifference(timeIn, timeOut));
+            }
+
+            const notes = userData.notes || "";
+            ws_data.push([userData.pouchNumber, userID, timeOut, timeIn, total, notes]);
         }
 
         const ws = XLSX.utils.aoa_to_sheet(ws_data);
@@ -731,24 +740,39 @@ function exportBreakToExcel() {
     });
 }
 
+
 function exportAttendanceToExcel() {
+    // Retrieve all attendance data from Firebase
     firebase.database().ref('attendance/').once('value').then((snapshot) => {
         let allData = snapshot.val();
-
-        const ws_data = [['SERIAL NO.', 'USERIDS', 'TIME IN', 'NOTES']];
-        let serialNumber = 1; // Initialize the serial number
-
-        for (let userID in allData) {
-            const notes = allData[userID].notes || '';
-            ws_data.push([serialNumber++, userID, allData[userID].timeIn, notes]);
+        
+        if (!allData) {
+            alert("No attendance data available to export.");
+            return;
         }
 
+        // Prepare data for Excel export
+        const ws_data = [['SERIAL #', 'USERIDS', 'TIME IN', 'NOTES']];
+        let serialNumber = 1; // For the SERIAL # column
+
+        for (let userID in allData) {
+            const userData = allData[userID];
+            const timeIn = userData.timeIn || "-";
+            const notes = userData.notes || "";
+            ws_data.push([serialNumber++, userID, timeIn, notes]);
+        }
+
+        // Use xlsx library to create and download the Excel file
         const ws = XLSX.utils.aoa_to_sheet(ws_data);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Attendance_Data");
         XLSX.writeFile(wb, "attendance_data.xlsx");
+    }).catch((error) => {
+        console.error('Error fetching attendance data:', error);
+        alert("Error exporting attendance data to Excel. Please try again.");
     });
 }
+
 
 </script>
 </body>
