@@ -868,10 +868,13 @@ function exportBreakToExcel() {
 
         const ws_data = [['POUCH NO.', 'USERIDS', 'TIME OUT', 'TIME IN', 'TOTAL', 'NOTES']];
 
-        for (let userID in allData) {
+        // Sort the data by pouchNumber
+        const sortedUserIDs = Object.keys(allData).sort((a, b) => allData[a].pouchNumber - allData[b].pouchNumber);
+
+        for (let userID of sortedUserIDs) {
             const userData = allData[userID];
-            const timeOut = userData.timeOut || "-";   // Keep Time Out as it is
-            const timeIn = userData.timeIn || "-";     // Keep Time In as it is
+            const timeOut = userData.timeOut || "-";
+            const timeIn = userData.timeIn || "-";
             let total;
 
             if (timeOut === "-" || timeIn === "-" || isNaN(getTimeDifference(timeIn, timeOut))) {
@@ -881,7 +884,7 @@ function exportBreakToExcel() {
             }
 
             const notes = userData.notes || "";
-            ws_data.push([userData.pouchNumber, userID, timeIn, timeOut, total, notes]);   // Ensure Time Out comes before Time In
+            ws_data.push([userData.pouchNumber, userID, timeIn, timeOut, total, notes]); // Ensure Time Out comes before Time In
         }
 
         const ws = XLSX.utils.aoa_to_sheet(ws_data);
@@ -890,6 +893,7 @@ function exportBreakToExcel() {
         XLSX.writeFile(wb, "break_time_data.xlsx");
     });
 }
+
 
 
 
