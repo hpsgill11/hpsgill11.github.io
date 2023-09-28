@@ -468,12 +468,24 @@ function recordTime() {
             firebase.database().ref('break/' + userID).set(userData);
             displayMessage(`User ${userID} checked out at ${currentTime}.`, 'success');
         } else if (!userData.timeOut) {
-            userData.timeOut = currentTime;
-            firebase.database().ref('break/' + userID).update(userData);
-            displayMessage(`User ${userID} checked in at ${currentTime}.`, 'success');
-        } else {
-            displayMessage('User already scanned in and out for the day.', 'error');
+        const potentialTimeIn = currentTime; // The new time in we're about to set
+        const timeDifference = getTimeDifference(userData.timeIn, potentialTimeIn); // Get the time difference
+
+        // Check if the difference is less than 1 minute
+        if (timeDifference < 1) {
+            displayMessage('Cannot check in under 1 minute.', 'error');
+            document.getElementById('userIDInput').value = '';
+        refocusInput();
+            return;  // Exit the function early
         }
+
+        // If the difference is more than 1 minute, update the timeIn
+        userData.timeOut = currentTime;
+        firebase.database().ref('break/' + userID).update(userData);
+        displayMessage(`User ${userID} checked in at ${currentTime}.`, 'success');
+    } else {
+        displayMessage('User already scanned in and out for the day.', 'error');
+    }
 
         // Render the table with the updated userID
         renderTable(userID);
