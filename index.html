@@ -135,7 +135,7 @@ table {
 }
 
 .highlight {
-    animation: fadeHighlight 3s forwards;
+    animation: fadeHighlight 4s forwards;
 }
 .highlight-orange {
     color: #ff9500;
@@ -475,6 +475,7 @@ function recordTime() {
         if (timeDifference < 1) {
             displayMessage('Cannot check in under 1 minute.', 'error');
             document.getElementById('userIDInput').value = '';
+        renderTable(userID);
         refocusInput();
             return;  // Exit the function early
         }
