@@ -1,936 +1,146 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>Time and Attendance Tracker</title>
-  <style>
-    /* Reset & General */
-    body, h2, table {
-      margin: 0;
-      padding: 0;
-      font-family: 'Arial', sans-serif;
-    }
-    body {
-      background-color: #f4f5f7;
-      padding: 20px;
-    }
-    h2 {
-      color: #333;
-      margin-bottom: 20px;
-    }
-    /* Messages */
-    #successMessage,
-    #errorMessage,
-    #attendanceSuccessMessage,
-    #attendanceErrorMessage {
-      display: none;
-      padding: 10px 15px;
-      margin: 10px 0;
-      border-radius: 5px;
-    }
-    #successMessage,
-    #attendanceSuccessMessage {
-      background-color: #d4edda;
-      color: #155724;
-    }
-    #errorMessage,
-    #attendanceErrorMessage {
-      background-color: #f8d7da;
-      color: #721c24;
-    }
-    /* Input and Button */
-    label {
-      display: block;
-      margin-bottom: 5px;
-      color: #666;
-    }
-    input[type="text"], input[type="time"] {
-      padding: 10px;
-      border: none;
-      border-radius: 5px;
-      box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-    }
-    button {
-      margin-left: 10px;
-      padding: 10px 15px;
-      background-color: #007BFF;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      transition: background-color 0.3s;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-    /* Table */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-      text-align: center;
-    }
-    th, td {
-      padding: 10px 15px;
-      border-bottom: 1px solid #e0e0e0;
-    }
-    th {
-      background-color: #007BFF;
-      color: white;
-    }
-    tbody tr:hover {
-      background-color: #f2f2f2;
-    }
-        thead {
-      display: table;
-      width: calc(100% - 18px); /* account for scrollbar */
-    }
-    tbody {
-      display: block;
-      max-height: 400px; /* set max-height */
-      overflow-y: auto;
-      width: 100%;
-    }
-    tbody tr {
-      display: table;
-      width: 100%;
-      table-layout: fixed;
-    }
-th, td {
-  width: calc(100% / 7); /* Divide by the number of columns */
-  box-sizing: border-box;
-}
-
-table {
-  table-layout: fixed;
-}
-/* Messages */
-#successMessage,
-#errorMessage,
-#attendanceSuccessMessage,
-#attendanceErrorMessage {
-  position: fixed; /* Fixed position */
-  top: 10px; /* Place them 10px from the top */
-  left: 50%; /* Center them horizontally */
-  transform: translateX(-50%); /* Adjust for exact centering */
-  z-index: 1000; /* Make sure they appear above all other elements */
-  display: none;
-  padding: 10px 15px;
-  margin: 10px 0;
-  border-radius: 5px;
-  width: auto; /* Auto width */
-}
-/* Center-align text for specific input fields */
-.center-align-input {
-  text-align: center;
-}
-@keyframes fadeHighlight {
-    from {
-        background-color: yellow;
-    }
-    to {
-        background-color: transparent;
-    }
-}
-
-.highlight {
-    animation: fadeHighlight 4s forwards;
-}
-.highlight-orange {
-    color: #ff9500;
-}
-
-.highlight-red {
-    color: red;
-}
-        /* New styles for the login page */
-#loginPage {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            background-color: #f4f5f7;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wave Safety Induction Status</title>
+    <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-database.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
         }
-
-        #loginForm {
-            width: 300px;
-            padding: 50px;
-            background-color: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-
-        #loginForm h2 {
-            text-align: center;
-            margin-bottom: 20px;
+        h1 {
             color: #333;
         }
-
-        #loginForm input[type="email"],
-        #loginForm input[type="password"] {
-            width: 100%;
-            margin-bottom: 15px;
-            border: 1px solid #dbdbdb;
-            padding: 10px;
-            border-radius: 5px;
+        form, table {
+            margin-bottom: 20px;
         }
-
-        #loginForm button {
-            width: 100%;
-            border-radius: 5px;
-            background-color: #3897f0;
-            color: #ffffff;
-            font-weight: bold;
+        input, button {
             padding: 10px;
+            margin: 5px;
+            border-radius: 4px;
+        }
+        input {
+            border: 1px solid #ddd;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
             border: none;
             cursor: pointer;
         }
-
-        #loginForm button:hover {
-            background-color: #357abD;
+        button:hover {
+            background-color: #0056b3;
         }
-        #loginPage, #mainContent {
-    display: none;
-}
-#loginError {
-    margin-top: 15px;
-    text-align: center;
-}
-
-  </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"> </script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>  
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyDCXrQGBQcueZQmI3mUstKA0dntmttpZT0",
-    authDomain: "breaktracker-62b1a.firebaseapp.com",
-    databaseURL: "https://breaktracker-62b1a-default-rtdb.firebaseio.com",
-    projectId: "breaktracker-62b1a",
-    storageBucket: "breaktracker-62b1a.appspot.com",
-    messagingSenderId: "269997389846",
-    appId: "1:269997389846:web:3147becfbe6be9bbca9d37",
-    measurementId: "G-ZSEHN89M3J"
-  };
-
-  // Initialize Firebase
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-
-</script>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            text-align: left;
+            padding: 8px;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .deleteButton {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .deleteButton:hover {
+            background-color: #c82333;
+        }
+    </style>
 </head>
 <body>
-    <div id="loginPage" style="display: block;">
-        <!-- App Name -->
-        <h2>Break Tracker and Attendance Tracker</h2>
-        
-        <!-- Login Form -->
-        <div id="loginForm">
-            <h2>Login</h2>
-            <label for="email">Email:</label>
-            <input type="email" id="email">
-            <label for="password">Password:</label>
-            <input type="password" id="password">
-            <button onclick="login()">Login</button>
-            <div id="loginError" style="color: red;"></div>
-        </div>
-    </div>
-    
-    <div id="mainContent" style="display: none;">
-  <div id="successMessage"></div>
-  <div id="errorMessage"></div>
-  <div id="attendanceSuccessMessage"></div>
-  <div id="attendanceErrorMessage"></div>
-
-  <button onclick="switchView('break')" style="margin-bottom: 20px;">Break Time Tracker</button>
-<button onclick="switchView('attendance')" style="margin-bottom: 20px;">Attendance Tracker</button>
-<button id="clearDatabaseButton" onclick="clearDatabaseForActiveTab()" style="margin-top: 1px;">Clear Break Database</button>
-<button onclick="logout()">Logout</button>
-
-  <div id="break" style="display:block;">
-    <h2>Break Time Tracker - Morning Shift</h2>
-    <label for="userIDInput">Scan USERID:</label>
-    <input id="userIDInput" type="text">
-    <button onclick="recordTime()">Scan</button>
-    <div id="successMessage"></div>
-    <div id="errorMessage"></div>
+    <h1>Wave Safety Induction Status</h1>
+    <form onsubmit="event.preventDefault(); addWave();">
+        <input type="text" id="waveNumberInput" placeholder="Enter wave number (e.g., 202311092345)" pattern="[0-9]{12}" required>
+        <input type="text" id="waveDescriptionInput" placeholder="Enter wave description" required>
+        <button type="submit">Add Wave</button>
+    </form>
     <table>
-<thead>
-  <tr>
-    <th>POUCH #</th> <!-- New Column for Serial Number -->
-    <th>USERIDS</th>
-    <th>TIME OUT</th>
-    <th>TIME IN</th>
-    <th>TOTAL</th>
-    <th>ACTIONS</th>
-    <th>NOTES</th>
-  </tr>
-</thead>
-      <tbody id="userTable"></tbody>
+        <thead>
+            <tr>
+                <th>Wave Number</th>
+                <th>Wave Description</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="waveTableBody"></tbody>
     </table>
-  </div>
 
-  <div id="attendance" style="display:none;">
-    <h2>Attendance Tracker - Morning Shift</h2>
-    <label for="attendanceUserIDInput">Scan USERID:</label>
-    <input id="attendanceUserIDInput" type="text">
-    <button onclick="recordAttendanceTime()">Scan</button>
-    <div id="attendanceSuccessMessage"></div>
-    <div id="attendanceErrorMessage"></div>
-    <table>
-<thead>
-  <tr>
-    <th>SERIAL #</th> <!-- New Column for Serial Number -->
-    <th>USERIDS</th>
-    <th>TIME IN</th>
-    <th>ACTIONS</th>
-    <th>NOTES</th>
-  </tr>
-</thead>
-      <tbody id="attendanceUserTable"></tbody>
-    </table>
-  </div>
-
-<button onclick="exportBreakToExcel()" style="position: absolute; top: 20px; right: 20px;">Export Break Data to Excel</button>
-<button onclick="exportAttendanceToExcel()" style="position: absolute; top: 60px; right: 20px;">Export Attendance Data to Excel</button>
-</div>
-  <script>
-    const users = {};
-    const attendanceUsers = {};
-    auth.onAuthStateChanged(function(user) {
-    if (user) {
-        // User is signed in.
-        document.getElementById('mainContent').style.display = 'block';
-        document.getElementById('loginPage').style.display = 'none';
-        refocusInput('break');  // <-- Move this line here
-    } else {
-        // No user is signed in.
-        document.getElementById('loginPage').style.display = 'block';
-        document.getElementById('mainContent').style.display = 'none';
-    }
-});
-
-auth.onAuthStateChanged(function(user) {
-    if (user) {
-        // User is signed in.
-        localStorage.setItem('authState', 'loggedIn');
-    } else {
-        // No user is signed in.
-        localStorage.setItem('authState', 'loggedOut');
-    }
-});
-
-
-
-
-function login() {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    auth.signInWithEmailAndPassword(email, password).catch(function(error) {
-        // Try parsing the error message (assuming it's in JSON format)
-        try {
-            const parsedError = JSON.parse(error.message);
-            if (parsedError && parsedError.error && parsedError.error.message === "INVALID_LOGIN_CREDENTIALS") {
-                document.getElementById('loginError').innerText = "Wrong user ID and password.";
-            } else {
-                document.getElementById('loginError').innerText = error.message;  // Default error message
-            }
-        } catch (e) {
-            document.getElementById('loginError').innerText = error.message;  // If parsing fails, show the raw error
-        }
-    });
-}
-
-
-
-
-function logout() {
-    auth.signOut();
-}
-
-function clearDatabaseForActiveTab() {
-    const isBreakTabActive = document.getElementById('break').style.display !== 'none';
-
-    if (isBreakTabActive) {
-        if (confirm("Are you sure you want to clear the entire break database? This action is irreversible.")) {
-            firebase.database().ref('break/').remove().then(() => {
-                renderTable(); // Re-render the break table after clearance
-                displayMessage('Break database cleared successfully.', 'success');
-            }).catch((error) => {
-                console.error('Error clearing break database:', error);
-                displayMessage('Error clearing break database. Please try again.', 'error');
-            }).finally(() => {
-                refocusInput('break');  // Refocus on the break input field
-            });
-        } else {
-            refocusInput('break');  // Refocus on the break input field if user cancels the dialog
-        }
-    } else {
-        if (confirm("Are you sure you want to clear the entire attendance database? This action is irreversible.")) {
-            firebase.database().ref('attendance/').remove().then(() => {
-                renderAttendanceTable(); // Re-render the attendance table after clearance
-                displayMessage('Attendance database cleared successfully.', 'success', 'attendance');
-            }).catch((error) => {
-                console.error('Error clearing attendance database:', error);
-                displayMessage('Error clearing attendance database. Please try again.', 'error', 'attendance');
-            }).finally(() => {
-                refocusInput('attendance');  // Refocus on the attendance input field
-            });
-        } else {
-            refocusInput('attendance');  // Refocus on the attendance input field if user cancels the dialog
-        }
-    }
-}
-
-
-    function timeToMinutes(time) {
-      const [hours, minutes] = time.split(':').map(Number);
-      return hours * 60 + minutes;
-    }
-    function minutesToTime(minutes) {
-      const hours = Math.floor(minutes / 60);
-      const mins = minutes % 60;
-      return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
-    }
-
-    function getTimeDifference(start, end) {
-    if (!start || !end) return -1; // Return -1 when either start or end is empty
-
-    const startTime = timeToMinutes(start);
-    const endTime = timeToMinutes(end);
-    const difference = endTime - startTime;
-    return difference;
-}
-
-	
-function scrollToLastRow() {
-    const tbody = document.getElementById('userTable');
-    const lastRow = tbody.lastElementChild;
-    if (lastRow) {
-        lastRow.scrollIntoView();
-    }
-}
-
-function scrollToLastAttendanceRow() {
-    const tbody = document.getElementById('attendanceUserTable');
-    const lastRow = tbody.lastElementChild;
-    if (lastRow) {
-        lastRow.scrollIntoView();
-    }
-}
-function highlightRowByUserID(userID) {
-    const row = document.querySelector(`#userTable tr[data-userid="${userID}"]`);
-    if (row) {
-        row.classList.add('highlight');
-        setTimeout(() => {
-            row.classList.remove('highlight');
-        }, 4000); // The highlight will fade out after 4 seconds
-    }
-}
-
-function recordTime() {
-    const userID = document.getElementById('userIDInput').value.trim();  // Trim any leading or trailing spaces
-
-    // Check if the userID is empty
-    if (!userID) {
-        displayMessage('Please enter a valid USERID.', 'error');
-        return;  // Exit the function early
-    }
-
-    const now = new Date();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const currentTime = `${hours}:${minutes}`;
-
-    // Retrieve all break data from Firebase
-    firebase.database().ref('break/').once('value').then((snapshot) => {
-        let allData = snapshot.val() || {};
-
-        // Determine the next available pouchNumber
-        let allPouchNumbers = Object.values(allData).map(data => data.pouchNumber).sort((a, b) => a - b);
-        let nextPouchNumber = 1;
-        for(let num of allPouchNumbers) {
-            if(num !== nextPouchNumber) break; // Found a gap in the sequence
-            nextPouchNumber++;
-        }
-
-        let userData = allData[userID];
-        if (!userData) {
-            userData = {
-                pouchNumber: nextPouchNumber,
-                timeIn: currentTime,
-                timeOut: '',
-                notes: ''
-            };
-            firebase.database().ref('break/' + userID).set(userData);
-            displayMessage(`User ${userID} checked out at ${currentTime}.`, 'success');
-        } else if (!userData.timeOut) {
-        const potentialTimeIn = currentTime; // The new time in we're about to set
-        const timeDifference = getTimeDifference(userData.timeIn, potentialTimeIn); // Get the time difference
-
-        // Check if the difference is less than 1 minute
-        if (timeDifference < 1) {
-            displayMessage('Cannot check in under 1 minute.', 'error');
-            document.getElementById('userIDInput').value = '';
-        renderTable(userID);
-        refocusInput();
-            return;  // Exit the function early
-        }
-
-        // If the difference is more than 1 minute, update the timeIn
-        userData.timeOut = currentTime;
-        firebase.database().ref('break/' + userID).update(userData);
-        displayMessage(`User ${userID} checked in at ${currentTime}.`, 'success');
-    } else {
-        displayMessage('User already scanned in and out for the day.', 'error');
-    }
-
-        // Render the table with the updated userID
-        renderTable(userID);
-
-        document.getElementById('userIDInput').value = '';
-        refocusInput();
-    });
-}
-
-
-
-function deleteUserData(userID) {
-    firebase.database().ref('break/' + userID).remove().then(() => {
-        renderTable();
-		        refocusInput('break');  // Add this line
-    }).catch((error) => {
-        console.error('Error deleting user data:', error);
-    });
-}
-
-function isValidTime(value) {
-    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
-    return timeRegex.test(value);
-}
-
-function updateTimeIn(userID, value) {
-    if (!isValidTime(value)) {
-        alert('Please enter a valid time in HH:MM format.');
-        return;
-    }
-    firebase.database().ref('break/' + userID).update({timeIn: value});
-    renderTable();  // Re-render the table to update the total time
-}
-
-function updateTimeOut(userID, value) {
-    if (!isValidTime(value)) {
-        alert('Please enter a valid time in HH:MM format.');
-        return;
-    }
-    firebase.database().ref('break/' + userID).update({timeOut: value});
-    renderTable();  // Re-render the table to update the total time
-}
-
-
-function updateNotes(userID, value) {
-    firebase.database().ref('break/' + userID).update({notes: value});
-}
-
-
-    function refocusInput(tracker = 'break') {
-      const inputID = tracker === 'break' ? 'userIDInput' : 'attendanceUserIDInput';
-      document.getElementById(inputID).focus();
-    }
-
-    function displayMessage(message, type, tracker = 'break') {
-      const messageID = tracker === 'break' 
-        ? (type === 'success' ? 'successMessage' : 'errorMessage') 
-        : (type === 'success' ? 'attendanceSuccessMessage' : 'attendanceErrorMessage');
-      const messageDiv = document.getElementById(messageID);
-      messageDiv.innerText = message;
-      messageDiv.style.display = 'block';
-      setTimeout(() => {
-        messageDiv.style.display = 'none';
-      }, 5000);
-    }
-function recordAttendanceTime() {
-    const userID = document.getElementById('attendanceUserIDInput').value.trim();  // Trim any leading or trailing spaces
-
-    // Check if the userID is empty
-    if (!userID) {
-        displayMessage('Please enter a valid USERID.', 'error', 'attendance');
-        return;  // Exit the function early
-    }
-
-    const now = new Date();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const currentTime = `${hours}:${minutes}`;
-
-    firebase.database().ref('attendance/' + userID).once('value').then((snapshot) => {
-        let userData = snapshot.val();
-        if (!userData) {
-            userData = {
-                timeIn: currentTime,
-                notes: ''
-            };
-            firebase.database().ref('attendance/' + userID).set(userData);
-            displayMessage(`User ${userID} checked in at ${currentTime}.`, 'success', 'attendance');
-        } else {
-            displayMessage('User already checked in for the day.', 'error', 'attendance');
-        }
-
-    renderAttendanceTable(userID);  // Pass the updated userID to the renderAttendanceTable function
-    document.getElementById('attendanceUserIDInput').value = '';
-    refocusInput('attendance');
-    });
-}
-
-
-function deleteAttendanceUserData(userID) {
-    firebase.database().ref('attendance/' + userID).remove().then(() => {
-        renderAttendanceTable();
-		        refocusInput('attendance');  // Add this line
-    }).catch((error) => {
-        console.error('Error deleting attendance data:', error);
-    });
-}
-
-function updateAttendanceNotes(userID, value) {
-    firebase.database().ref('attendance/' + userID).update({notes: value});
-}
-
-
-function renderAttendanceTable(updatedUserID = null) {
-    const tbody = document.getElementById('attendanceUserTable');
-    
-    firebase.database().ref('attendance/').once('value').then((snapshot) => {
-        let allData = snapshot.val() || {};
-        
-        let sortedData = Object.keys(allData).sort((a, b) => {
-            return timeToMinutes(allData[a].timeIn) - timeToMinutes(allData[b].timeIn);
-        });
-
-        for (let userID of sortedData) {
-            const userData = allData[userID];
-            const existingRow = document.querySelector(`#attendanceUserTable tr[data-userid="${userID}"]`);
-            
-            const notes = userData.notes || '';
-            const rowContent = `
-                <td>${userID}</td>
-                <td><input class="center-align-input" value="${userData.timeIn}" /></td>
-                <td><button onclick="deleteAttendanceUserData('${userID}')">Delete</button></td>
-                <td><input class="center-align-input" value="${notes}" onchange="updateAttendanceNotes('${userID}', this.value)" /></td>
-            `;
-
-            if (existingRow) {
-                existingRow.innerHTML = rowContent;
-            } else {
-                const newRow = document.createElement('tr');
-                newRow.setAttribute('data-userid', userID);
-                newRow.innerHTML = rowContent;
-                tbody.appendChild(newRow);
-            }
-        }
-
-        // Remove rows that no longer exist in the database
-        const allRows = tbody.querySelectorAll('tr');
-        for (let row of allRows) {
-            const rowUserID = row.getAttribute('data-userid');
-            if (!allData[rowUserID]) {
-                tbody.removeChild(row);
-            }
-        }
-
-        if (updatedUserID) {
-            const updatedRow = document.querySelector(`#attendanceUserTable tr[data-userid="${updatedUserID}"]`);
-            if (updatedRow) {
-                updatedRow.scrollIntoView();
-                highlightAttendanceRowByUserID(updatedUserID);
-            }
-        }
-    });
-}
-function renderAttendanceTable(updatedUserID = null) {
-    const tbody = document.getElementById('attendanceUserTable');
-    
-    firebase.database().ref('attendance/').once('value').then((snapshot) => {
-        let allData = snapshot.val() || {};
-        
-        let sortedData = Object.keys(allData).sort((a, b) => {
-            return timeToMinutes(allData[a].timeIn) - timeToMinutes(allData[b].timeIn);
-        });
-
-        for (let userID of sortedData) {
-            const userData = allData[userID];
-            const existingRow = document.querySelector(`#attendanceUserTable tr[data-userid="${userID}"]`);
-            
-            const notes = userData.notes || '';
-            const rowContent = `
-                <td></td> <!-- This will be populated with the serial number later -->
-                <td>${userID}</td>
-                <td><input class="center-align-input" value="${userData.timeIn}" /></td>
-                <td><button onclick="deleteAttendanceUserData('${userID}')">Delete</button></td>
-                <td><input class="center-align-input" value="${notes}" onchange="updateAttendanceNotes('${userID}', this.value)" /></td>
-            `;
-
-            if (existingRow) {
-                existingRow.innerHTML = rowContent;
-            } else {
-                const newRow = document.createElement('tr');
-                newRow.setAttribute('data-userid', userID);
-                newRow.innerHTML = rowContent;
-                tbody.appendChild(newRow);
-            }
-        }
-
-        // Remove rows that no longer exist in the database
-        const allRows = tbody.querySelectorAll('tr');
-        for (let row of allRows) {
-            const rowUserID = row.getAttribute('data-userid');
-            if (!allData[rowUserID]) {
-                tbody.removeChild(row);
-            }
-        }
-
-        if (updatedUserID) {
-            const updatedRow = document.querySelector(`#attendanceUserTable tr[data-userid="${updatedUserID}"]`);
-            if (updatedRow) {
-                updatedRow.scrollIntoView();
-                highlightAttendanceRowByUserID(updatedUserID);
-            }
-        }
-
-        // Correct the serial numbers after all other updates
-        const updatedRows = tbody.querySelectorAll('tr');
-        updatedRows.forEach((row, index) => {
-            const serialCell = row.querySelector('td:first-child');
-            serialCell.textContent = index + 1;  // Update the serial number
-        });
-    });
-}
-
-function highlightAttendanceRowByUserID(userID) {
-    const row = document.querySelector(`#attendanceUserTable tr[data-userid="${userID}"]`);
-    if (row) {
-        row.classList.add('highlight');
-        setTimeout(() => {
-            row.classList.remove('highlight');
-        }, 4000); // The highlight will fade out after 4 seconds
-    }
-}
-
-
-
-    document.getElementById('userIDInput').addEventListener('keyup', function(event) {
-      if (event.keyCode === 13) {
-        recordTime();
-      }
-    });
-
-    // Add this for Attendance Tracker
-    document.getElementById('attendanceUserIDInput').addEventListener('keyup', function(event) {
-      if (event.keyCode === 13) {
-        recordAttendanceTime();
-      }
-    });
-function switchView(view) {
-    document.getElementById('break').style.display = view === 'break' ? 'block' : 'none';
-    document.getElementById('attendance').style.display = view === 'attendance' ? 'block' : 'none';
-    
-    const button = document.getElementById('clearDatabaseButton');
-    if (view === 'break') {
-        button.innerText = 'Clear Break Database';
-        refocusInput('break');  // Refocus on the break input field
-    } else {
-        button.innerText = 'Clear Attendance Database';
-        refocusInput('attendance');  // Refocus on the attendance input field
-    }
-}
-
-
-function insertRowInOrder(tbody, newRow, pouchNumber) {
-    const allRows = tbody.querySelectorAll('tr');
-    for (let i = 0; i < allRows.length; i++) {
-        const currentRow = allRows[i];
-        const currentPouchNumber = parseInt(currentRow.querySelector('td:first-child').textContent, 10);
-        if (pouchNumber < currentPouchNumber) {
-            tbody.insertBefore(newRow, currentRow);
-            return;
-        }
-    }
-    tbody.appendChild(newRow);  // If we haven't returned by now, append to the end
-}
-
-function renderTable(updatedUserID = null) {
-    const tbody = document.getElementById('userTable');
-    
-    firebase.database().ref('break/').once('value').then((snapshot) => {
-        let allData = snapshot.val() || {};
-        let sortedData = Object.keys(allData).sort((a, b) => {
-            return allData[a].pouchNumber - allData[b].pouchNumber;
-        });
-
-        for (let userID of sortedData) {
-            const userData = allData[userID];
-            const existingRow = document.querySelector(`#userTable tr[data-userid="${userID}"]`);
-
-            const totalMinutes = getTimeDifference(userData.timeIn, userData.timeOut);
-            let colorClass = '';
-            let total = '';
-            
-            if (totalMinutes === -1) {
-                total = '-';
-            } else {
-                total = minutesToTime(totalMinutes);
-                if (totalMinutes > 30) {
-                    colorClass = 'highlight-red';
-                } else if (totalMinutes > 15) {
-                    colorClass = 'highlight-orange';
+    <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyD7iF19fJucjC9lvmkfepUprHeCkIbl53Y",
+  authDomain: "safeinduction.firebaseapp.com",
+  databaseURL: "https://safeinduction-default-rtdb.firebaseio.com",
+  projectId: "safeinduction",
+  storageBucket: "safeinduction.appspot.com",
+  messagingSenderId: "566924897458",
+  appId: "1:566924897458:web:3c95026f5536e10127edab",
+  measurementId: "G-WWE4ZL5H5P"
+};
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        function addWave() {
+            const waveNumber = document.getElementById('waveNumberInput').value;
+            const waveDescription = document.getElementById('waveDescriptionInput').value;
+
+            // Check for duplicate wave number
+            database.ref('waves').orderByChild('waveNumber').equalTo(waveNumber).once('value', snapshot => {
+                if (snapshot.exists()) {
+                    alert('Duplicate wave number detected. Please enter a unique wave number.');
+                } else {
+                    const newWaveRef = database.ref('waves').push();
+                    newWaveRef.set({ waveNumber, waveDescription })
+                    .then(() => {
+                        console.log("Wave added successfully.");
+                        document.getElementById('waveNumberInput').value = '';
+                        document.getElementById('waveDescriptionInput').value = '';
+                    })
+                    .catch((error) => {
+                        console.error("Error adding wave: ", error);
+                    });
                 }
-            }
-            
-            const notes = userData.notes || '';
-            const pouchNumber = userData.pouchNumber;
-            const rowContent = `
-                <td>${pouchNumber}</td>
-                <td>${userID}</td>
-                <td><input class="center-align-input" value="${userData.timeIn}" onchange="updateTimeIn('${userID}', this.value)" /></td>
-                <td><input class="center-align-input" value="${userData.timeOut}" onchange="updateTimeOut('${userID}', this.value)" /></td>
-                <td class="${colorClass}">${total}</td>
-                <td><button onclick="deleteUserData('${userID}')">Delete</button></td>
-                <td><input class="center-align-input" value="${notes}" onchange="updateNotes('${userID}', this.value)" /></td>
-            `;
-
-            if (existingRow) {
-                existingRow.innerHTML = rowContent;
-            } else {
-                const newRow = document.createElement('tr');
-                newRow.setAttribute('data-userid', userID);
-                newRow.innerHTML = rowContent;
-                insertRowInOrder(tbody, newRow, pouchNumber);
-            }
+            });
         }
 
-        // Remove rows that no longer exist in the database
-        const allRows = tbody.querySelectorAll('tr');
-        for (let row of allRows) {
-            const rowUserID = row.getAttribute('data-userid');
-            if (!allData[rowUserID]) {
-                tbody.removeChild(row);
-            }
+        function deleteWave(waveId) {
+            database.ref('waves/' + waveId).remove();
         }
 
-        if (updatedUserID) {
-            const updatedRow = document.querySelector(`#userTable tr[data-userid="${updatedUserID}"]`);
-            if (updatedRow) {
-                updatedRow.scrollIntoView();
-                highlightRowByUserID(updatedUserID);
-            }
-        }
-    });
-}
- 
+        database.ref('waves').on('value', (snapshot) => {
+            const waveTableBody = document.getElementById('waveTableBody');
+            waveTableBody.innerHTML = '';
+            snapshot.forEach((childSnapshot) => {
+                const { waveNumber, waveDescription } = childSnapshot.val();
+                const waveId = childSnapshot.key;
 
+                const row = waveTableBody.insertRow();
+                const waveNumberCell = row.insertCell(0);
+                const waveDescriptionCell = row.insertCell(1);
+                const actionsCell = row.insertCell(2);
 
-    document.getElementById('userIDInput').addEventListener('keyup', function(event) {
-      if (event.keyCode === 13) {
-        recordTime();
-      }
-    });
-    document.getElementById('email').addEventListener('keyup', function(event) {
-            if (event.keyCode === 13) {
-                login();
-            }
+                waveNumberCell.textContent = waveNumber;
+                waveDescriptionCell.textContent = waveDescription;
+
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.classList.add('deleteButton');
+                deleteButton.onclick = () => deleteWave(waveId);
+                actionsCell.appendChild(deleteButton);
+            });
         });
-
-        document.getElementById('password').addEventListener('keyup', function(event) {
-            if (event.keyCode === 13) {
-                login();
-            }
-        });
-window.onload = function() {
-    let authState = localStorage.getItem('authState');
-    if (authState === 'loggedIn') {
-        document.getElementById('mainContent').style.display = 'block';
-        document.getElementById('loginPage').style.display = 'none';
-    } else {
-        document.getElementById('loginPage').style.display = 'block';
-        document.getElementById('mainContent').style.display = 'none';
-    }
-  renderTable();
-  renderAttendanceTable();
-}
-
-  </script>
-  <script>
-function exportBreakToExcel() {
-    firebase.database().ref('break/').once('value').then((snapshot) => {
-        let allData = snapshot.val();
-
-        const ws_data = [['POUCH NO.', 'USERIDS', 'TIME OUT', 'TIME IN', 'TOTAL', 'NOTES']];
-
-        // Sort the data by pouchNumber
-        const sortedUserIDs = Object.keys(allData).sort((a, b) => allData[a].pouchNumber - allData[b].pouchNumber);
-
-        for (let userID of sortedUserIDs) {
-            const userData = allData[userID];
-            const timeOut = userData.timeOut || "-";
-            const timeIn = userData.timeIn || "-";
-            let total;
-
-            if (timeOut === "-" || timeIn === "-" || isNaN(getTimeDifference(timeIn, timeOut))) {
-                total = "-";
-            } else {
-                total = minutesToTime(getTimeDifference(timeIn, timeOut));
-            }
-
-            const notes = userData.notes || "";
-            ws_data.push([userData.pouchNumber, userID, timeIn, timeOut, total, notes]); // Ensure Time Out comes before Time In
-        }
-
-        const ws = XLSX.utils.aoa_to_sheet(ws_data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Break_Time_Data");
-        XLSX.writeFile(wb, "break_time_data.xlsx");
-    });
-}
-
-
-
-
-function exportAttendanceToExcel() {
-    // Retrieve all attendance data from Firebase
-    firebase.database().ref('attendance/').once('value').then((snapshot) => {
-        let allData = snapshot.val();
-        
-        if (!allData) {
-            alert("No attendance data available to export.");
-            return;
-        }
-
-        // Prepare data for Excel export
-        const ws_data = [['SERIAL #', 'USERIDS', 'TIME IN', 'NOTES']];
-        let serialNumber = 1; // For the SERIAL # column
-
-        for (let userID in allData) {
-            const userData = allData[userID];
-            const timeIn = userData.timeIn || "-";
-            const notes = userData.notes || "";
-            ws_data.push([serialNumber++, userID, timeIn, notes]);
-        }
-
-        // Use xlsx library to create and download the Excel file
-        const ws = XLSX.utils.aoa_to_sheet(ws_data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Attendance_Data");
-        XLSX.writeFile(wb, "attendance_data.xlsx");
-    }).catch((error) => {
-        console.error('Error fetching attendance data:', error);
-        alert("Error exporting attendance data to Excel. Please try again.");
-    });
-}
-
-
-</script>
+    </script>
 </body>
 </html>
